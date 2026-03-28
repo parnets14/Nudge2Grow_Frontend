@@ -37,7 +37,16 @@ const StudentModal = ({ parent, beyondSchoolMap, avatarMap, onClose, onDelete })
             </div>
           ) : (
             <div className="space-y-5">
-              {children.map((child, i) => {
+              {[...children]
+                .map((child, originalIdx) => ({ child, originalIdx }))
+                .sort((a, b) => {
+                  const activeIdx = parent.activeChildIndex ?? 0;
+                  if (a.originalIdx === activeIdx) return -1;
+                  if (b.originalIdx === activeIdx) return 1;
+                  return 0;
+                })
+                .map(({ child, originalIdx }, i) => {
+                const isActive = (parent.activeChildIndex ?? 0) === originalIdx;
                 const subjectLevels = child.subjectLevels || {};
                 const levelEntries = Object.entries(subjectLevels);
                 const beyondTopics = (child.topics || []).filter(t => !Object.keys(subjectLevels).includes(t));
@@ -48,7 +57,7 @@ const StudentModal = ({ parent, beyondSchoolMap, avatarMap, onClose, onDelete })
                 return (
                   <div key={child._id || i} className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
                     {/* Student header */}
-                    <div className="bg-gradient-to-r from-[#00bf62]/10 to-green-50 px-5 py-4 flex items-center gap-4">
+                    <div className={`px-5 py-4 flex items-center gap-4 ${isActive ? 'bg-gradient-to-r from-[#00bf62]/20 to-green-50 border-b-2 border-[#00bf62]/30' : 'bg-gradient-to-r from-gray-50 to-white'}`}>
                       {avatarSrc ? (
                         <img src={avatarSrc} alt={child.name} className="w-14 h-14 rounded-full object-cover border-2 border-[#00bf62]/40 shrink-0" />
                       ) : (
@@ -57,7 +66,14 @@ const StudentModal = ({ parent, beyondSchoolMap, avatarMap, onClose, onDelete })
                         </div>
                       )}
                       <div className="flex-1">
-                        <h3 className="text-lg font-bold text-gray-800">{child.name}</h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-lg font-bold text-gray-800">{child.name}</h3>
+                          {isActive && (
+                            <span className="bg-[#00bf62] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full tracking-wide">
+                              ★ ACTIVE
+                            </span>
+                          )}
+                        </div>
                         <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-500">
                           {child.grade && <span className="flex items-center gap-1"><MdSchool className="text-[#00bf62]" />{child.grade}</span>}
                           {child.educationBoard && <span className="flex items-center gap-1"><MdMenuBook className="text-[#00bf62]" />{child.educationBoard}</span>}
@@ -194,92 +210,121 @@ const AdminUsers = () => {
           value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
-      {/* Table — one row per child */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-[#00bf62] text-white">
-              <th className="px-5 py-3.5 text-left font-semibold w-10">No</th>
-              <th className="px-5 py-3.5 text-left font-semibold">Avatar</th>
-              <th className="px-5 py-3.5 text-left font-semibold">Child Name</th>
-              <th className="px-5 py-3.5 text-left font-semibold">Grade</th>
-              <th className="px-5 py-3.5 text-left font-semibold">Phone</th>
-              <th className="px-5 py-3.5 text-left font-semibold">Email</th>
-              <th className="px-5 py-3.5 text-center font-semibold w-24">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={7} className="text-center py-16 text-gray-400">Loading...</td></tr>
-            ) : loadError ? (
-              <tr><td colSpan={7} className="text-center py-16 text-red-400 font-medium">{loadError}</td></tr>
-            ) : (() => {
-              // Flatten: one row per child
-              const rows = [];
-              filtered.forEach(parent => {
-                if (parent.children?.length) {
-                  parent.children.forEach(child => rows.push({ parent, child }));
-                } else {
-                  rows.push({ parent, child: null });
-                }
-              });
-              if (rows.length === 0) return (
-                <tr><td colSpan={7} className="text-center py-16 text-gray-400">
-                  <MdPeople className="text-5xl text-gray-200 mx-auto mb-2" />
-                  {search ? "No users match your search." : "No users registered yet."}
-                </td></tr>
-              );
-              return rows.map(({ parent, child }, i) => {
-                const avSrc = child?.avatar
-                  ? (avatarMap[child.avatar] || (child.avatar.startsWith('data:') || child.avatar.startsWith('http') ? child.avatar : null))
-                  : null;
-                return (
-                  <tr key={`${parent._id}-${child?._id || 'none'}`} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                    <td className="px-5 py-3.5 text-gray-400 font-medium">{i + 1}</td>
-                    <td className="px-5 py-3.5">
-                      {child ? (
-                        avSrc
-                          ? <img src={avSrc} className="w-10 h-10 rounded-full object-cover border-2 border-[#00bf62]/20" alt={child.name} />
-                          : <div className="w-10 h-10 rounded-full bg-[#00bf62]/10 flex items-center justify-center text-[#00bf62] font-bold text-sm">
-                              {child.name?.[0]?.toUpperCase() || "?"}
+      {/* Cards — one card per parent */}
+      <div className="space-y-4">
+        {loading ? (
+          <div className="bg-white rounded-2xl p-16 text-center text-gray-400 border border-gray-200">Loading...</div>
+        ) : loadError ? (
+          <div className="bg-white rounded-2xl p-16 text-center text-red-400 border border-gray-200">{loadError}</div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-white rounded-2xl p-16 text-center text-gray-400 border border-gray-200">
+            <MdPeople className="text-5xl text-gray-200 mx-auto mb-2" />
+            {search ? "No users match your search." : "No users registered yet."}
+          </div>
+        ) : filtered.map((parent, i) => {
+          const activeIdx = parent.activeChildIndex ?? 0;
+          const children = parent.children || [];
+
+          return (
+            <div key={parent._id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              {/* Parent contact header */}
+              <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-100">
+                <div className="flex items-center gap-4">
+                  <span className="text-xs font-bold text-gray-300 w-5">{i + 1}</span>
+                  <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                    <MdPhone className="text-[#00bf62]" />{parent.countryCode} {parent.phone}
+                  </div>
+                  {parent.email && (
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <MdEmail className="text-[#00bf62]" />{parent.email}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setViewParent(parent)} title="View details"
+                    className="w-8 h-8 rounded-lg bg-[#00bf62]/10 flex items-center justify-center text-[#00bf62] hover:bg-[#00bf62]/20 transition">
+                    <MdVisibility className="text-lg" />
+                  </button>
+                  <button onClick={() => handleDelete(parent._id)} title="Delete"
+                    className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 transition">
+                    <MdDelete className="text-lg" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Children */}
+              {children.length === 0 ? (
+                <div className="px-5 py-4 text-sm text-gray-300 flex items-center gap-2">
+                  <MdChildCare className="text-xl" /> No child added yet
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-50">
+                  {[...children]
+                    .map((child, originalIdx) => ({ child, originalIdx }))
+                    .sort((a, b) => {
+                      if (a.originalIdx === activeIdx) return -1;
+                      if (b.originalIdx === activeIdx) return 1;
+                      return 0;
+                    })
+                    .map(({ child, originalIdx }) => {
+                      const isActive = originalIdx === activeIdx;
+                      const avSrc = child.avatar
+                        ? (avatarMap[child.avatar] || (child.avatar.startsWith('data:') || child.avatar.startsWith('http') ? child.avatar : null))
+                        : null;
+                      const subjectLevels = child.subjectLevels ? Object.entries(child.subjectLevels) : [];
+                      const beyondTopics = (child.topics || []).filter(t => !Object.keys(child.subjectLevels || {}).includes(t));
+
+                      return (
+                        <div key={child._id || originalIdx} className={`px-5 py-4 ${isActive ? 'bg-green-50/40' : ''}`}>
+                          <div className="flex items-center gap-3">
+                            {/* Avatar */}
+                            {avSrc
+                              ? <img src={avSrc} className="w-11 h-11 rounded-full object-cover border-2 border-[#00bf62]/30 shrink-0" alt={child.name} />
+                              : <div className="w-11 h-11 rounded-full bg-[#00bf62]/10 flex items-center justify-center text-[#00bf62] font-bold text-base shrink-0">
+                                  {child.name?.[0]?.toUpperCase() || '?'}
+                                </div>
+                            }
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-gray-800">{child.name}</span>
+                                {isActive
+                                  ? <span className="bg-[#00bf62] text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full tracking-wide">✓ ACTIVE</span>
+                                  : <span className="bg-gray-100 text-gray-400 text-[9px] font-bold px-2.5 py-0.5 rounded-full tracking-wide">INACTIVE</span>
+                                }
+                              </div>
+                              <div className="flex flex-wrap gap-3 mt-0.5 text-xs text-gray-500">
+                                {child.grade && <span className="flex items-center gap-1"><MdSchool className="text-[#00bf62]" />{child.grade}</span>}
+                                {child.educationBoard && <span className="flex items-center gap-1"><MdMenuBook className="text-[#00bf62]" />{child.educationBoard}</span>}
+                                {child.dateOfBirth && <span className="flex items-center gap-1"><MdCake className="text-[#00bf62]" />{child.dateOfBirth}</span>}
+                              </div>
                             </div>
-                      ) : <span className="text-gray-300">—</span>}
-                    </td>
-                    <td className="px-5 py-3.5 font-semibold text-gray-800">
-                      {child?.name || <span className="text-gray-300">No child</span>}
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-600">
-                      {child?.grade || <span className="text-gray-300">—</span>}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-1.5">
-                        <MdPhone className="text-[#00bf62] shrink-0" />
-                        <span className="text-gray-700">{parent.countryCode} {parent.phone}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-600">
-                      {parent.email
-                        ? <div className="flex items-center gap-1.5"><MdEmail className="text-[#00bf62] shrink-0" />{parent.email}</div>
-                        : <span className="text-gray-300">—</span>}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => setViewParent(parent)} title="View details"
-                          className="text-[#00bf62] hover:text-[#00a055] transition">
-                          <MdVisibility className="text-xl" />
-                        </button>
-                        <button onClick={() => handleDelete(parent._id)} title="Delete"
-                          className="text-red-400 hover:text-red-600 transition">
-                          <MdDelete className="text-xl" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              });
-            })()}
-          </tbody>
-        </table>
+                          </div>
+
+                          {/* Chips */}
+                          {(subjectLevels.length > 0 || beyondTopics.length > 0) && (
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {subjectLevels.map(([subject, level]) => (
+                                <span key={subject} className="flex items-center gap-1.5 text-xs bg-white border border-[#00bf62]/30 text-gray-700 font-medium px-3 py-1 rounded-full">
+                                  <span className="capitalize">{subject.replace(/-/g, ' ')}</span>
+                                  <span className={`font-bold ${level === 'Advanced' ? 'text-red-500' : level === 'Intermediate' ? 'text-yellow-600' : 'text-[#00bf62]'}`}>{level}</span>
+                                </span>
+                              ))}
+                              {beyondTopics.map(t => (
+                                <span key={t} className="text-xs bg-blue-50 text-blue-600 font-semibold px-3 py-1 rounded-full border border-blue-100">
+                                  {beyondSchoolMap[t] || t.replace(/-/g, ' ')}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {viewParent && (
