@@ -63,15 +63,15 @@ const AdminPanel = () => {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <div
-        className={`fixed md:relative z-30 w-64 bg-[#083744] text-white transition-all duration-300 ease-in-out ${
+        className={`fixed md:relative z-30 w-64 bg-white text-black transition-all duration-300 ease-in-out border-r border-gray-200 ${
           sidebarOpen ? "ml-0" : "-ml-64"
         } md:ml-0`}>
-        <div className="p-4 border-b border-[#0a4453]">
+        <div className="p-4 border-b border-gray-200">
           <div className="flex items-center">
             <img src={Logo} alt="" className="h-20 w-28" />
             <div>
-              <h1 className="text-xl font-bold">Nudge2grow</h1>
-              <p className="text-[#ccb28b] text-sm">Admin Panel</p>
+              <h1 className="text-xl font-bold text-black">Nudge2grow</h1>
+              <p className="text-gray-600 text-sm">Admin Panel</p>
             </div>
           </div>
         </div>
@@ -84,14 +84,14 @@ const AdminPanel = () => {
                   to={item.path}
                   className={`w-full flex items-center p-3 rounded-lg transition-all ${
                     location.pathname === item.path
-                      ? "bg-[#ccb28b] text-[#083744] shadow-md"
-                      : "text-gray-200 hover:bg-[#0a4453] hover:text-white"
+                      ? "bg-green-50 text-green-600 shadow-sm"
+                      : "text-black hover:bg-gray-100"
                   }`}>
                   <span
                     className={`${
                       location.pathname === item.path
-                        ? "text-[#083744]"
-                        : "text-[#ccb28b]"
+                        ? "text-green-600"
+                        : "text-black"
                     }`}>
                     {item.icon}
                   </span>

@@ -114,17 +114,6 @@ function Login() {
                 </div>
               </div>
 
-              {/* Remember + Forgot */}
-              <div className="flex items-center justify-between text-base">
-                <label className="flex items-center gap-2 cursor-pointer text-gray-600">
-                  <input type="checkbox" className="w-4 h-4 accent-[#00bf62]" />
-                  Remember me
-                </label>
-                <a href="#" className="text-[#00bf62] font-medium hover:underline">
-                  Forgot password?
-                </a>
-              </div>
-
               {/* Button */}
               <button
                 type="submit"

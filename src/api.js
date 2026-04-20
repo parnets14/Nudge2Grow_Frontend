@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const BASE_URL = "/api";
+const BASE_URL = import.meta.env.VITE_API_URL || "/api";
+export const UPLOADS_URL = import.meta.env.VITE_UPLOADS_URL || "https://nudgebackend.onrender.com/uploads";
 
 const client = axios.create({ baseURL: BASE_URL });
 

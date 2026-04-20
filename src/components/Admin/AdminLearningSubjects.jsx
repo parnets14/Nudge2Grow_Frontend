@@ -2,7 +2,8 @@
 import {
   MdAdd, MdEdit, MdDelete, MdInbox, MdMenuBook, MdLock, MdTrendingUp,
   MdClose, MdSave, MdExpandMore, MdExpandLess, MdPlayCircle, MdImage,
-  MdArrowBack, MdArrowForward, MdCheck, MdVisibility,
+  MdArrowBack, MdArrowForward, MdCheck, MdVisibility, MdBook, MdTopic,
+  MdStyle, MdSchool,
 } from "react-icons/md";
 import { api } from "../../api";
 
@@ -29,17 +30,17 @@ const SUBJECT_CONFIG = {
 const TOPIC_TYPES = ["Activity", "Reading", "Video", "Quiz", "Game"];
 
 const STEPS = [
-  { key: "info",   label: "Subject Info", emoji: "📋" },
-  { key: "topics", label: "Topics",       emoji: "📚" },
+  { key: "info",   label: "Subject Info", icon: <MdInbox /> },
+  { key: "topics", label: "Topics",       icon: <MdBook /> },
 ];
 
 const GRADES = ["Grade 1", "Grade 2", "Grade 3", "Grade 4"];
 
 const TABS = [
-  { key: "subjects",     label: "Subjects",      emoji: "📚" },
-  { key: "topics",       label: "Topics",        emoji: "📝" },
-  { key: "flashcards",   label: "Flashcards",    emoji: "🃏" },
-  { key: "learndetails", label: "Learn Details", emoji: "🎓" },
+  { key: "subjects",     label: "Subjects",      icon: <MdBook /> },
+  { key: "topics",       label: "Topics",        icon: <MdTopic /> },
+  { key: "flashcards",   label: "Flashcards",    icon: <MdStyle /> },
+  { key: "learndetails", label: "Learn Details", icon: <MdSchool /> },
 ];
 
 const makeEmptyTopic     = () => ({ title: "", type: "Activity", description: "", videoUrl: "" });
@@ -1770,7 +1771,7 @@ const AdminLearningSubjects = () => {
           {TABS.map(tab => (
             <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSelected(null); }}
               className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 transition whitespace-nowrap ${activeTab === tab.key ? "border-[#00aa59] text-[#00aa59] bg-green-50" : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
-              <span>{tab.emoji}</span>{tab.label}
+              <span className="text-lg">{tab.icon}</span>{tab.label}
             </button>
           ))}
         </div>
