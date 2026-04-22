@@ -25,6 +25,11 @@ import AdminContactMessages from './components/HelpSupport/AdminContactMessages'
 import AdminSupportInfo from './components/HelpSupport/AdminSupportInfo'
 import AdminCustomerRatings from './components/Settings/AdminCustomerRatings'
 
+// Quiz
+import QuestionTypes from './components/Quize/QuestionTypes'
+import QuizSettings from './components/Quize/QuizSettings'
+import QuizQuestions from './components/Quize/QuizQuestions'
+
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   return token ? children : <Navigate to="/login" replace />;
@@ -44,6 +49,9 @@ function App() {
           <Route path="subscription/testimonials" element={<AdminTestimonials />} />
           <Route path="subscription/faq" element={<AdminFAQ />} />
           <Route path="Learning-Subjects" element={<AdminLearningSubjects />} />
+          <Route path="question-types" element={<QuestionTypes />} />
+          <Route path="quiz-settings" element={<QuizSettings />} />
+          <Route path="quiz-questions" element={<QuizQuestions />} />
 
           {/* User Management */}
           <Route path="grade" element={<AdminGrade />} />

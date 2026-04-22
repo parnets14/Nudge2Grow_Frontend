@@ -26,7 +26,7 @@ const inp = "w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focu
 const TestimonialModal = ({ entry, onSave, onClose }) => {
   const [form, setForm] = useState(entry ? { ...entry } : { ...EMPTY });
   const f = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
-  const valid = form.name.trim() !== "" && form.text.trim() !== "";
+  const valid = (form.name || "").trim() !== "" && (form.text || "").trim() !== "";
 
   const handlePhoto = (e) => {
     const file = e.target.files[0];
@@ -63,21 +63,21 @@ const TestimonialModal = ({ entry, onSave, onClose }) => {
           </div>
           <div>
             <label className="block text-base font-bold text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
-            <input className={inp} placeholder="e.g. Priya Sharma" value={form.name} onChange={f("name")} />
+            <input className={inp} placeholder="e.g. Priya Sharma" value={form.name || ""} onChange={f("name")} />
           </div>
           <div>
             <label className="block text-base font-bold text-gray-700 mb-1">Role</label>
-            <input className={inp} placeholder="e.g. Mother of Child" value={form.role} onChange={f("role")} />
+            <input className={inp} placeholder="e.g. Mother of Child" value={form.role || ""} onChange={f("role")} />
           </div>
           <div>
             <label className="block text-base font-bold text-gray-700 mb-1">Rating</label>
-            <select className={inp} value={form.rating} onChange={f("rating")}>
+            <select className={inp} value={form.rating || "5"} onChange={f("rating")}>
               {[5, 4, 3, 2, 1].map((r) => <option key={r} value={r}>{r} ★</option>)}
             </select>
           </div>
           <div>
             <label className="block text-base font-bold text-gray-700 mb-1">Review Text <span className="text-red-500">*</span></label>
-            <textarea rows={4} className={`${inp} resize-none`} placeholder="Write the review…" value={form.text} onChange={f("text")} />
+            <textarea rows={4} className={`${inp} resize-none`} placeholder="Write the review…" value={form.text || ""} onChange={f("text")} />
           </div>
         </div>
         <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
@@ -101,8 +101,17 @@ const AdminTestimonials = () => {
 
   const load = async () => {
     setLoading(true);
-    try { const res = await api.testimonials.getAll(); setTestimonials(res.data || res || []); }
-    catch (e) { console.error(e); } finally { setLoading(false); }
+    try { 
+      console.log('[AdminTestimonials] Fetching testimonials...');
+      const res = await api.testimonials.getAll(); 
+      console.log('[AdminTestimonials] Response:', res);
+      setTestimonials(res.data || res || []); 
+    }
+    catch (e) { 
+      console.error('[AdminTestimonials] Error:', e); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   useEffect(() => { load(); }, []);

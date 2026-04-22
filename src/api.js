@@ -3,6 +3,9 @@ import axios from "axios";
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 export const UPLOADS_URL = import.meta.env.VITE_UPLOADS_URL || "https://nudgebackend.onrender.com/uploads";
 
+console.log('[API] BASE_URL:', BASE_URL);
+console.log('[API] UPLOADS_URL:', UPLOADS_URL);
+
 const client = axios.create({ baseURL: BASE_URL });
 
 client.interceptors.request.use((config) => {
@@ -10,6 +13,20 @@ client.interceptors.request.use((config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+// Add response interceptor to handle 401 errors
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid - clear storage and redirect to login
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("token");
+      window.location.href = "/admin/login";
+    }
+    return Promise.reject(error);
+  }
+);
 
 const get    = (url, params) => client.get(url, { params }).then((r) => r.data);
 const post   = (url, body)   => client.post(url, body).then((r) => r.data);
@@ -146,10 +163,10 @@ export const api = {
     remove: (id)     => del(`/subscription/plans/${id}`),
   },
   testimonials: {
-    getAll: ()       => get("/subscription/testimonials"),
-    create: (body)   => post("/subscription/testimonials", body),
-    update: (id, b)  => put(`/subscription/testimonials/${id}`, b),
-    remove: (id)     => del(`/subscription/testimonials/${id}`),
+    getAll: ()       => get("/testimonials/admin"),
+    create: (body)   => post("/testimonials/admin", body),
+    update: (id, b)  => put(`/testimonials/admin/${id}`, b),
+    remove: (id)     => del(`/testimonials/admin/${id}`),
   },
   faqs: {
     getAll: ()       => get("/subscription/faqs"),
@@ -175,5 +192,21 @@ export const api = {
   customerRatings: {
     getAll: ()       => get("/customer-ratings"),
     remove: (id)     => del(`/customer-ratings/${id}`),
+  },
+
+  // Question Types
+  questionTypes: {
+    getAll: ()       => get("/question-types"),
+    create: (body)   => post("/question-types", body),
+    update: (id, b)  => put(`/question-types/${id}`, b),
+    remove: (id)     => del(`/question-types/${id}`),
+  },
+
+  // Quiz Settings
+  quizSettings: {
+    getAll: ()       => get("/quiz-settings"),
+    create: (body)   => post("/quiz-settings", body),
+    update: (id, b)  => put(`/quiz-settings/${id}`, b),
+    remove: (id)     => del(`/quiz-settings/${id}`),
   },
 };

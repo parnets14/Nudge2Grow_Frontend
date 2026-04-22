@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdLayers, MdVisibility } from "react-icons/md";
 import { api } from "../../api";
+import { getImageUrl } from "../../utils/imageUrl";
 
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#00bf62] transition";
 
@@ -43,7 +44,7 @@ const Modal = ({ entry, onSave, onClose, saving }) => {
             <label className="flex flex-col items-center gap-2 cursor-pointer group">
               <div className={`w-full h-32 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden transition ${form.image ? "border-[#00bf62]" : "border-gray-200 group-hover:border-[#00bf62]"}`}>
                 {form.image
-                  ? <img src={form.image} className="w-full h-full object-cover" alt="preview" />
+                  ? <img src={getImageUrl(form.image)} className="w-full h-full object-cover" alt="preview" />
                   : <span className="text-xs text-gray-400 group-hover:text-[#00bf62] transition">Click to upload image</span>}
               </div>
               <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
@@ -155,7 +156,7 @@ const AdminPhaseCards = () => {
                 <td className="px-5 py-3.5 text-gray-400 font-medium">{i + 1}</td>
                 <td className="px-5 py-3.5">
                   {item.image
-                    ? <img src={item.image} className="w-12 h-10 rounded-lg object-cover border border-gray-200" alt={item.title} />
+                    ? <img src={getImageUrl(item.image)} className="w-12 h-10 rounded-lg object-cover border border-gray-200" alt={item.title} />
                     : <div className="w-12 h-10 rounded-lg bg-gray-100 flex items-center justify-center"><MdLayers className="text-gray-300 text-xl" /></div>}
                 </td>
                 <td className="px-5 py-3.5 font-semibold text-gray-800 max-w-xs"><p className="truncate">{item.title}</p></td>

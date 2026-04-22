@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdAccountCircle } from "react-icons/md";
 import { api } from "../../api";
+import { getImageUrl } from "../../utils/imageUrl";
 
 const Modal = ({ entry, onSave, onClose, saving }) => {
   const [form, setForm] = useState(entry ? { ...entry } : { image: "" });
@@ -43,7 +44,7 @@ const Modal = ({ entry, onSave, onClose, saving }) => {
             <div className={`w-36 h-36 rounded-2xl border-2 border-dashed flex items-center justify-center overflow-hidden transition
               ${form.image ? "border-[#45a578]" : "border-gray-300 group-hover:border-[#45a578]"}`}>
               {form.image ? (
-                <img src={form.image} className="w-full h-full object-cover" alt="preview" />
+                <img src={getImageUrl(form.image)} className="w-full h-full object-cover" alt="preview" />
               ) : (
                 <MdAccountCircle className="text-gray-300 text-6xl group-hover:text-[#45a578] transition" />
               )}
@@ -153,7 +154,7 @@ const AdminSelectAvatar = () => {
               <tr key={av._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                 <td className="px-6 py-4 text-gray-500 font-medium">{i + 1}</td>
                 <td className="px-6 py-4">
-                  <img src={av.image} alt="avatar" className="w-14 h-14 rounded-xl object-cover border border-gray-200" />
+                  <img src={getImageUrl(av.image)} alt="avatar" className="w-14 h-14 rounded-xl object-cover border border-gray-200" />
                 </td>
                 <td className="px-6 py-4 text-gray-500">
                   {av.createdAt ? new Date(av.createdAt).toLocaleDateString() : "—"}

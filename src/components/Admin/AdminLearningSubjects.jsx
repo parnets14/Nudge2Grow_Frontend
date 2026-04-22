@@ -6,6 +6,7 @@ import {
   MdStyle, MdSchool,
 } from "react-icons/md";
 import { api } from "../../api";
+import { getImageUrl } from "../../utils/imageUrl";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const inp = "w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-4 focus:ring-[#00aa59]/10 transition bg-white";
@@ -83,7 +84,7 @@ const SubjectCard = ({ s, onEdit, onDelete }) => {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {s.imageUrl
-            ? <img src={s.imageUrl} alt={s.name} className="w-11 h-11 rounded-xl object-cover shrink-0" />
+            ? <img src={getImageUrl(s.imageUrl)} alt={s.name} className="w-11 h-11 rounded-xl object-cover shrink-0" />
             : <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ backgroundColor: cfg.bg }}>{cfg.icon}</div>}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap mb-0.5">
@@ -152,7 +153,7 @@ const StepInfo = ({ form, set }) => {
         <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Subject Image</label>
         <label className="flex items-center gap-4 cursor-pointer group">
           <div className={`w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center shrink-0 overflow-hidden transition ${form.imageUrl ? "border-[#00aa59]" : "border-gray-300 group-hover:border-[#00aa59]"}`}>
-            {form.imageUrl ? <img src={form.imageUrl} alt="preview" className="w-full h-full object-cover" /> : <MdImage className="text-3xl text-gray-300 group-hover:text-[#00aa59] transition" />}
+            {form.imageUrl ? <img src={getImageUrl(form.imageUrl)} alt="preview" className="w-full h-full object-cover" /> : <MdImage className="text-3xl text-gray-300 group-hover:text-[#00aa59] transition" />}
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-700 group-hover:text-[#00aa59] transition">{form.imageUrl ? "Change Image" : "Select Image"}</p>
@@ -430,7 +431,7 @@ const AddSubjectModal = ({ editing, saving, onClose, onSave }) => {
                 {uploading
                   ? <div className="w-5 h-5 border-2 border-[#00aa59] border-t-transparent rounded-full animate-spin" />
                   : form.imageUrl
-                    ? <img src={form.imageUrl} alt="preview" className="w-full h-full object-cover" />
+                    ? <img src={getImageUrl(form.imageUrl)} alt="preview" className="w-full h-full object-cover" />
                     : <MdImage className="text-2xl text-gray-300 group-hover:text-[#00aa59] transition" />}
               </div>
               <div>
@@ -523,7 +524,7 @@ const TabSubjects = ({ subjects, onEdit, onDelete, onAdd, refreshing }) => {
                 <td className="px-5 py-3.5 text-gray-400 font-medium">{i + 1}</td>
                 <td className="px-5 py-3.5">
                   {s.imageUrl
-                    ? <img src={s.imageUrl} alt={s.name} className="w-10 h-10 rounded-xl object-cover border border-gray-200" />
+                    ? <img src={getImageUrl(s.imageUrl)} alt={s.name} className="w-10 h-10 rounded-xl object-cover border border-gray-200" />
                     : <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><MdImage className="text-xl" /></div>}
                 </td>
                 <td className="px-5 py-3.5">
@@ -557,7 +558,7 @@ const SubjectGrid = ({ subjects, onSelect, emptyIcon, countFn, btnColor }) => (
           {subjects.map(s => (
             <div key={s._id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-between hover:shadow-md transition">
               <div className="flex items-center gap-3">
-                {s.imageUrl ? <img src={s.imageUrl} alt={s.name} className="w-10 h-10 rounded-xl object-cover" /> : <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-xl">{emptyIcon}</div>}
+                {s.imageUrl ? <img src={getImageUrl(s.imageUrl)} alt={s.name} className="w-10 h-10 rounded-xl object-cover" /> : <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-xl">{emptyIcon}</div>}
                 <div><p className="font-bold text-gray-800 text-sm">{s.name}</p><p className="text-xs text-gray-400">{countFn(s)}</p></div>
               </div>
               <button onClick={() => onSelect(s)} className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition ${btnColor}`}><MdEdit className="text-sm" /> Edit</button>
@@ -857,7 +858,7 @@ const TopicFormModal = ({ editing, subjects, saving, onClose, onSave }) => {
                 {uploading
                   ? <div className="w-6 h-6 border-2 border-[#00aa59] border-t-transparent rounded-full animate-spin" />
                   : form.imageUrl
-                    ? <img src={form.imageUrl} alt="preview" className="w-full h-full object-cover" />
+                    ? <img src={getImageUrl(form.imageUrl)} alt="preview" className="w-full h-full object-cover" />
                     : <MdImage className="text-3xl text-gray-300 group-hover:text-[#00aa59] transition" />}
               </div>
               <div>
@@ -975,7 +976,7 @@ const TabTopics = ({ subjects }) => {
                 <td className="px-5 py-3.5 text-gray-400 font-medium">{i + 1}</td>
                 <td className="px-5 py-3.5">
                   {t.imageUrl
-                    ? <img src={t.imageUrl} alt={t.title} className="w-10 h-10 rounded-xl object-cover border border-gray-200" />
+                    ? <img src={getImageUrl(t.imageUrl)} alt={t.title} className="w-10 h-10 rounded-xl object-cover border border-gray-200" />
                     : <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><MdImage className="text-xl" /></div>}
                 </td>
                 <td className="px-5 py-3.5 font-semibold text-gray-800">{t.title}</td>
@@ -1016,7 +1017,7 @@ const TabTopics = ({ subjects }) => {
             </div>
             <div className="px-7 py-6 space-y-4">
               {viewing.imageUrl && (
-                <img src={viewing.imageUrl} alt={viewing.title} className="w-full h-48 object-cover rounded-2xl border border-gray-200" />
+                <img src={getImageUrl(viewing.imageUrl)} alt={viewing.title} className="w-full h-48 object-cover rounded-2xl border border-gray-200" />
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Title</p><p className="text-sm font-semibold text-gray-800">{viewing.title}</p></div>

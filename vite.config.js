@@ -9,6 +9,7 @@ export default defineConfig({
       "/api": {
         target: "https://nudgebackend.onrender.com",
         changeOrigin: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/api'),
       },
     },

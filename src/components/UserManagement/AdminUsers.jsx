@@ -89,16 +89,19 @@ const StudentModal = ({ parent, beyondSchoolMap, avatarMap, onClose, onDelete })
                         <div>
                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Subjects & Levels</p>
                           <div className="space-y-2">
-                            {levelEntries.map(([subject, level]) => (
-                              <div key={subject} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-1.5">
-                                <span className="text-sm text-gray-700 font-medium capitalize">{subject.replace(/-/g, ' ')}</span>
-                                <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                                  level === 'Advanced' ? 'bg-red-100 text-red-600' :
-                                  level === 'Intermediate' ? 'bg-yellow-100 text-yellow-700' :
-                                  'bg-green-100 text-green-700'
-                                }`}>{level}</span>
-                              </div>
-                            ))}
+                            {levelEntries.map(([subject, level]) => {
+                              const subjectName = subjectMap[subject] || subject.replace(/-/g, ' ');
+                              return (
+                                <div key={subject} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-1.5">
+                                  <span className="text-sm text-gray-700 font-medium capitalize">{subjectName}</span>
+                                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                                    level === 'Advanced' ? 'bg-red-100 text-red-600' :
+                                    level === 'Intermediate' ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-green-100 text-green-700'
+                                  }`}>{level}</span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -136,16 +139,18 @@ const AdminUsers = () => {
   const [stats, setStats] = useState({ total: 0, totalChildren: 0 });
   const [beyondSchoolMap, setBeyondSchoolMap] = useState({});
   const [avatarMap, setAvatarMap] = useState({});
+  const [subjectMap, setSubjectMap] = useState({});
   const [viewParent, setViewParent] = useState(null);
 
   const load = async () => {
     setLoading(true);
     setLoadError('');
     try {
-      const [res, bsRes, avRes] = await Promise.all([
+      const [res, bsRes, avRes, subRes] = await Promise.all([
         api.users.getAll(),
         api.customizeLearning.getAll(),
         api.avatars.getAll(),
+        api.subjects.getAll(),
       ]);
       const data = res.parents || res.data || res || [];
       setParents(data);
@@ -156,8 +161,13 @@ const AdminUsers = () => {
       const avMap = {};
       (avRes.data || avRes || []).forEach(a => { avMap[a._id] = a.image; });
       setAvatarMap(avMap);
+      const subMap = {};
+      (subRes.data || subRes || []).forEach(s => { subMap[s._id] = s.name || s.title; });
+      setSubjectMap(subMap);
+      console.log('[AdminUsers] Subject map:', subMap);
     } catch (e) {
-      console.error(e);
+      console.error('[AdminUsers] Load error:', e);
+      console.error('[AdminUsers] Error response:', e?.response);
       setLoadError(e?.response?.data?.message || e.message || 'Failed to load users');
     }
     finally { setLoading(false); }
@@ -304,12 +314,15 @@ const AdminUsers = () => {
                           {/* Chips */}
                           {(subjectLevels.length > 0 || beyondTopics.length > 0) && (
                             <div className="flex flex-wrap gap-2 mt-3">
-                              {subjectLevels.map(([subject, level]) => (
-                                <span key={subject} className="flex items-center gap-1.5 text-xs bg-white border border-[#00bf62]/30 text-gray-700 font-medium px-3 py-1 rounded-full">
-                                  <span className="capitalize">{subject.replace(/-/g, ' ')}</span>
-                                  <span className={`font-bold ${level === 'Advanced' ? 'text-red-500' : level === 'Intermediate' ? 'text-yellow-600' : 'text-[#00bf62]'}`}>{level}</span>
-                                </span>
-                              ))}
+                              {subjectLevels.map(([subject, level]) => {
+                                const subjectName = subjectMap[subject] || subject.replace(/-/g, ' ');
+                                return (
+                                  <span key={subject} className="flex items-center gap-1.5 text-xs bg-white border border-[#00bf62]/30 text-gray-700 font-medium px-3 py-1 rounded-full">
+                                    <span className="capitalize">{subjectName}</span>
+                                    <span className={`font-bold ${level === 'Advanced' ? 'text-red-500' : level === 'Intermediate' ? 'text-yellow-600' : 'text-[#00bf62]'}`}>{level}</span>
+                                  </span>
+                                );
+                              })}
                               {beyondTopics.map(t => (
                                 <span key={t} className="text-xs bg-blue-50 text-blue-600 font-semibold px-3 py-1 rounded-full border border-blue-100">
                                   {beyondSchoolMap[t] || t.replace(/-/g, ' ')}

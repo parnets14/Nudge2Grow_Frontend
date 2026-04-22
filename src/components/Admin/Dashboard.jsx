@@ -15,6 +15,7 @@ const AdminDashboard = () => {
   const location  = useLocation();
   const [userMgmtOpen,setUserMgmtOpen] = useState(true);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
   const [homeMgmtOpen, setHomeMgmtOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -33,6 +34,12 @@ const AdminDashboard = () => {
     { path: "/admin/subscription/plans",        label: "Plans",        icon: <MdCreditCard /> },
     { path: "/admin/subscription/testimonials", label: "Testimonials", icon: <MdStar /> },
     { path: "/admin/subscription/faq",          label: "FAQ",          icon: <MdQuiz /> },
+  ];
+
+  const quizItems = [
+    { path: "/admin/question-types", label: "Question Types", icon: <MdQuiz /> },
+    { path: "/admin/quiz-settings", label: "Quiz Settings", icon: <MdTune /> },
+    { path: "/admin/quiz-questions", label: "Quiz Questions", icon: <MdQuiz /> },
   ];
 
   const userMgmtItems = [
@@ -117,6 +124,9 @@ const AdminDashboard = () => {
     if (p.includes("subscription/testimonials"))   return "Testimonials";
     if (p.includes("subscription/faq"))            return "FAQ";
     if (p.includes("learning-subjects/subjects"))  return "Subjects";
+    if (p.includes("question-types"))              return "Question Types";
+    if (p.includes("quiz-settings"))               return "Quiz Settings";
+    if (p.includes("quiz-questions"))              return "Quiz Questions";
     return "Dashboard";
   };
 
@@ -161,6 +171,16 @@ const AdminDashboard = () => {
 
           {/* Learning Subjects */}
           <NavItem item={{ path: "/admin/Learning-Subjects", label: "Learning Subjects", icon: <MdBook /> }} />
+
+          <Divider />
+
+          {/* Quiz */}
+          <GroupHeader label="Quiz" icon={<MdQuiz />} isOpen={quizOpen} onToggle={() => setQuizOpen(p => !p)} accent="#10b981" />
+          {quizOpen && (
+            <div className="pl-2 space-y-0.5 border-l border-green-200 ml-3">
+              {quizItems.map(item => <NavItem key={item.path} item={item} />)}
+            </div>
+          )}
 
           <Divider />
 

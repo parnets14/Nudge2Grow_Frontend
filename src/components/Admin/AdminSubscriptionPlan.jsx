@@ -190,9 +190,9 @@ const PlanModal = ({ entry, onSave, onClose }) => {
 
 // ── Testimonial Modal ─────────────────────────────────────────────────────────
 const TestimonialModal = ({ entry, onSave, onClose }) => {
-  const [form, setForm] = useState(entry ? { ...entry } : { ...EMPTY_TESTIMONIAL });
+  const [form, setForm] = useState(entry ? { ...EMPTY_TESTIMONIAL, ...entry } : { ...EMPTY_TESTIMONIAL });
   const f = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
-  const valid = form.name.trim() !== "" && form.text.trim() !== "";
+  const valid = (form.name || "").trim() !== "" && (form.text || "").trim() !== "";
 
   const handlePhoto = (e) => {
     const file = e.target.files[0];
@@ -273,12 +273,62 @@ const TestimonialModal = ({ entry, onSave, onClose }) => {
   );
 };
 
+// ── FAQ Modal ─────────────────────────────────────────────────────────────────
+const FaqModal = ({ entry, onSave, onClose }) => {
+  const [form, setForm] = useState(entry ? { ...entry } : { question: "", answer: "" });
+  const f = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
+  const valid = (form.question || "").trim() !== "" && (form.answer || "").trim() !== "";
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden">
+        <div className="bg-[#00aa59] px-8 py-5 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+              {entry ? <><MdEdit /> Edit FAQ</> : <><MdAdd /> Add FAQ</>}
+            </h2>
+            <p className="text-white/80 text-sm mt-0.5">Subscription Plan</p>
+          </div>
+          <button onClick={onClose} className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-9 h-9 flex items-center justify-center transition">
+            <MdClose className="text-xl" />
+          </button>
+        </div>
+
+        <div className="px-8 py-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Question <span className="text-red-500">*</span></label>
+            <input className={inp} placeholder="e.g. What do I get with the free plan?" value={form.question || ""} onChange={f("question")} />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Answer <span className="text-red-500">*</span></label>
+            <textarea rows={5} className={`${inp} resize-none`} placeholder="Write the answer here..." value={form.answer || ""} onChange={f("answer")} />
+          </div>
+        </div>
+
+        <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+          <button onClick={onClose} className="px-6 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition">
+            Cancel
+          </button>
+          <button
+            disabled={!valid}
+            onClick={() => valid && onSave(form)}
+            className={`px-8 py-2.5 rounded-xl text-white text-sm font-bold transition shadow flex items-center gap-2 ${valid ? "bg-[#00aa59] hover:bg-[#008f4a]" : "bg-gray-300 cursor-not-allowed"}`}
+          >
+            <MdSave /> {entry ? "Update" : "Add FAQ"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 const AdminSubscriptionPlan = () => {
   const [activeTab, setActiveTab] = useState("plans");
 
   const [plans, setPlans] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
+  const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -288,19 +338,24 @@ const AdminSubscriptionPlan = () => {
   const [testModal, setTestModal] = useState(false);
   const [editTestEntry, setEditTestEntry] = useState(null);
 
+  const [faqModal, setFaqModal] = useState(false);
+  const [editFaqEntry, setEditFaqEntry] = useState(null);
+
   const [viewPlan, setViewPlan] = useState(null);
   const [viewTest, setViewTest] = useState(null);
 
-  // ── Load both on mount ──
+  // ── Load all on mount ──
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [plansRes, testsRes] = await Promise.all([
+      const [plansRes, testsRes, faqsRes] = await Promise.all([
         api.plans.getAll(),
         api.testimonials.getAll(),
+        api.faqs.getAll(),
       ]);
       setPlans(plansRes.data || plansRes || []);
       setTestimonials(testsRes.data || testsRes || []);
+      setFaqs(faqsRes.data || faqsRes || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -343,6 +398,24 @@ const AdminSubscriptionPlan = () => {
     catch (e) { console.error(e); }
   };
 
+  // ── FAQs CRUD ──
+  const handleSaveFaq = async (form) => {
+    setSaving(true);
+    try {
+      if (editFaqEntry) await api.faqs.update(editFaqEntry._id, form);
+      else await api.faqs.create(form);
+      setFaqModal(false); setEditFaqEntry(null);
+      await loadAll();
+    } catch (e) { console.error(e); alert("Save failed."); }
+    finally { setSaving(false); }
+  };
+
+  const handleDeleteFaq = async (id) => {
+    if (!window.confirm("Delete this FAQ?")) return;
+    try { await api.faqs.remove(id); await loadAll(); }
+    catch (e) { console.error(e); }
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64 text-gray-400 text-sm">Loading…</div>;
 
   return (
@@ -357,8 +430,8 @@ const AdminSubscriptionPlan = () => {
       {/* ── STATS ── */}
       <div className="grid grid-cols-4 gap-3 mb-6">
         <SC label="Total Plans"value={plans.length}                              change="+1"  color="#00aa59" icon={<MdCreditCard />} />
-        <SC label="Active Plans"value={plans.filter(p=>p.status!=="inactive").length} change="+1" color="#4F8EF7" icon={<MdCheckCircle />} />
         <SC label="Testimonials"value={testimonials.length}                       change="+3"  color="#F6C72A" icon={<MdStar />} />
+        <SC label="FAQs"value={faqs.length}                       change="+2"  color="#4F8EF7" icon={<MdQuestionAnswer />} />
         <SC label="Avg Rating"value={testimonials.length ? (testimonials.reduce((s,t)=>s+Number(t.rating||5),0)/testimonials.length).toFixed(1)+"★" : "—"} change="+0.2" color="#EC4899" icon={<MdAutoAwesome />} />
       </div>
 
@@ -377,6 +450,12 @@ const AdminSubscriptionPlan = () => {
           >
             Testimonials
           </button>
+          <button
+            onClick={() => setActiveTab("faqs")}
+            className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition border-2 ${activeTab === "faqs" ? "bg-[#00aa59] text-white border-[#00aa59] shadow" : "bg-white text-gray-600 border-gray-200 hover:border-[#00aa59]/50"}`}
+          >
+            FAQs
+          </button>
         </div>
 
         {activeTab === "plans" ? (
@@ -384,10 +463,15 @@ const AdminSubscriptionPlan = () => {
             className="flex items-center gap-2 bg-[#00aa59] text-white px-6 py-3 rounded-xl font-semibold text-sm shadow-lg hover:bg-[#008f4a] transition">
             <MdAdd className="text-xl" /> Add Plan
           </button>
-        ) : (
+        ) : activeTab === "testimonials" ? (
           <button onClick={() => { setEditTestEntry(null); setTestModal(true); }}
             className="flex items-center gap-2 bg-[#00aa59] text-white px-6 py-3 rounded-xl font-semibold text-sm shadow-lg hover:bg-[#008f4a] transition">
             <MdAdd className="text-xl" /> Add Testimonial
+          </button>
+        ) : (
+          <button onClick={() => { setEditFaqEntry(null); setFaqModal(true); }}
+            className="flex items-center gap-2 bg-[#00aa59] text-white px-6 py-3 rounded-xl font-semibold text-sm shadow-lg hover:bg-[#008f4a] transition">
+            <MdAdd className="text-xl" /> Add FAQ
           </button>
         )}
       </div>
@@ -563,11 +647,67 @@ const AdminSubscriptionPlan = () => {
         </div>
       )}
 
+      {/* FAQs Table */}
+      {activeTab === "faqs" && (
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-[#00aa59] text-white text-sm">
+                  <th className="px-5 py-4 font-bold uppercase tracking-wider">No.</th>
+                  <th className="px-5 py-4 font-bold uppercase tracking-wider">Question</th>
+                  <th className="px-5 py-4 font-bold uppercase tracking-wider">Answer</th>
+                  <th className="px-5 py-4 font-bold uppercase tracking-wider text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {faqs.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-20 text-gray-400">
+                      <div className="flex flex-col items-center gap-3">
+                        <MdQuestionAnswer className="text-6xl text-gray-300" />
+                        <p className="font-medium">No FAQs yet</p>
+                        <p className="text-sm">Click &quot;+ Add FAQ&quot; to create your first one</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  faqs.map((faq, i) => (
+                    <tr key={faq._id} className={`border-t border-gray-100 transition-colors ${i % 2 === 0 ? "bg-white" : "bg-slate-50"} hover:bg-[#00aa59]/5`}>
+                      <td className="px-5 py-4 text-gray-400 text-sm">{i + 1}</td>
+                      <td className="px-5 py-4 font-semibold text-gray-800 text-sm max-w-xs">{faq.question || "—"}</td>
+                      <td className="px-5 py-4 text-gray-600 text-sm max-w-md">
+                        <p className="line-clamp-2">{faq.answer || "—"}</p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex gap-2 justify-center">
+                          <button onClick={() => { setEditFaqEntry(faq); setFaqModal(true); }}
+                            className="flex items-center gap-1 bg-amber-400 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+                            <MdEdit /> Edit
+                          </button>
+                          <button onClick={() => handleDeleteFaq(faq._id)}
+                            className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+                            <MdDelete /> Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {planModal && (
         <PlanModal entry={editPlanEntry} onSave={handleSavePlan} onClose={() => { setPlanModal(false); setEditPlanEntry(null); }} saving={saving} />
       )}
       {testModal && (
         <TestimonialModal entry={editTestEntry} onSave={handleSaveTest} onClose={() => { setTestModal(false); setEditTestEntry(null); }} saving={saving} />
+      )}
+      {faqModal && (
+        <FaqModal entry={editFaqEntry} onSave={handleSaveFaq} onClose={() => { setFaqModal(false); setEditFaqEntry(null); }} saving={saving} />
       )}
 
       {/* View Plan Modal */}
