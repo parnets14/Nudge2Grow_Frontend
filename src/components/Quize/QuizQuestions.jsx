@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nudgebackend.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const QuizQuestions = () => {
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [grades, setGrades] = useState([]);
   const [subjects, setSubjects] = useState([]);
-  const [topics, setTopics] = useState([]);
   const [filteredTopics, setFilteredTopics] = useState([]);
   const [questionTypes, setQuestionTypes] = useState([]);
-  const [quizSettings, setQuizSettings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -21,33 +20,37 @@ const QuizQuestions = () => {
     level: 'Basic',
     topic: '',
     questionType: '',
-    questionNumber: '',
-    questionPaper: null,
-    answerKey: null,
-    displayOrder: 0
+    question: '',
+    answer: '',
+    options: [],
+    marks: 1,
+    difficulty: 'Medium',
+    tags: '',
+    displayOrder: 0,
+    matchingPairs: [
+      { columnA: '', columnB: '' },
+      { columnA: '', columnB: '' },
+      { columnA: '', columnB: '' },
+      { columnA: '', columnB: '' }
+    ]
   });
 
-  const [questionPaperPreview, setQuestionPaperPreview] = useState('');
-  const [answerKeyPreview, setAnswerKeyPreview] = useState('');
+  const [selectedQuestionTypeName, setSelectedQuestionTypeName] = useState('');
+
   const [viewingQuestion, setViewingQuestion] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importResults, setImportResults] = useState(null);
+  const [importReference, setImportReference] = useState(null);
 
   useEffect(() => {
-    console.log('[QuizQuestions] Component mounted, fetching data...');
     fetchQuizQuestions();
     fetchGrades();
     fetchSubjects();
     fetchQuestionTypes();
-    fetchQuizSettings();
   }, []);
-
-  useEffect(() => {
-    console.log('[QuizQuestions] Grades state updated:', grades);
-  }, [grades]);
-
-  useEffect(() => {
-    console.log('[QuizQuestions] Subjects state updated:', subjects);
-  }, [subjects]);
 
   useEffect(() => {
     if (formData.subject) {
@@ -70,168 +73,182 @@ const QuizQuestions = () => {
 
   const fetchGrades = async () => {
     try {
-      console.log('[QuizQuestions] Fetching grades from:', `${API_BASE_URL}/grade`);
       const response = await axios.get(`${API_BASE_URL}/grade`);
-      console.log('[QuizQuestions] Grades response:', response.data);
-      console.log('[QuizQuestions] First grade object:', response.data[0]);
       setGrades(response.data);
     } catch (error) {
       console.error('Error fetching grades:', error);
-      console.error('Error details:', error.response?.data);
     }
   };
 
   const fetchSubjects = async () => {
     try {
-      console.log('[QuizQuestions] Fetching subjects from:', `${API_BASE_URL}/learning-subjects/subjects`);
       const response = await axios.get(`${API_BASE_URL}/learning-subjects/subjects`);
-      console.log('[QuizQuestions] Subjects response:', response.data);
       setSubjects(response.data);
     } catch (error) {
       console.error('Error fetching subjects:', error);
-      console.error('Error details:', error.response?.data);
     }
   };
 
   const fetchTopicsBySubject = async (subjectId) => {
     try {
-      console.log('[QuizQuestions] Fetching topics for subject:', subjectId);
-      console.log('[QuizQuestions] Current formData:', formData);
       const response = await axios.get(`${API_BASE_URL}/topics`);
-      console.log('[QuizQuestions] All topics response:', response.data);
-      
-      // Get the selected grade title for comparison
       const selectedGrade = grades.find(g => g._id === formData.grade);
       const selectedGradeTitle = selectedGrade?.title || selectedGrade?.name;
       
-      console.log('[QuizQuestions] Selected Grade Title:', selectedGradeTitle);
-      
-      // Filter topics by grade, subject, and level
       const filtered = response.data.filter(topic => {
-        // Check subject match - Topic model uses subjectId field
         const topicSubjectId = topic.subjectId?._id || topic.subjectId;
         const matchesSubject = topicSubjectId === subjectId;
-        
-        // Check grade match - Topic model stores grade as STRING (grade title)
         const topicGrade = topic.grade;
         const matchesGrade = formData.grade ? topicGrade === selectedGradeTitle : true;
-        
-        // Check level match - Case insensitive comparison
         const topicLevel = topic.level?.toLowerCase();
         const selectedLevel = formData.level?.toLowerCase();
         const matchesLevel = formData.level ? topicLevel === selectedLevel : true;
         
-        console.log('[QuizQuestions] Topic:', topic.title || topic.name);
-        console.log('  - Topic Subject ID:', topicSubjectId, '| Selected:', subjectId, '| Match:', matchesSubject);
-        console.log('  - Topic Grade:', topicGrade, '| Selected:', selectedGradeTitle, '| Match:', matchesGrade);
-        console.log('  - Topic Level:', topicLevel, '| Selected:', selectedLevel, '| Match:', matchesLevel);
-        console.log('  - Overall Match:', matchesSubject && matchesGrade && matchesLevel);
-        
         return matchesSubject && matchesGrade && matchesLevel;
       });
       
-      console.log('[QuizQuestions] Filtered topics count:', filtered.length);
-      console.log('[QuizQuestions] Filtered topics:', filtered);
-      setTopics(response.data);
       setFilteredTopics(filtered);
     } catch (error) {
       console.error('Error fetching topics:', error);
-      console.error('Error details:', error.response?.data);
-      setTopics([]);
       setFilteredTopics([]);
     }
   };
 
   const fetchQuestionTypes = async () => {
     try {
-      console.log('[QuizQuestions] Fetching question types from:', `${API_BASE_URL}/question-types`);
       const response = await axios.get(`${API_BASE_URL}/question-types`);
-      console.log('[QuizQuestions] Question types response:', response.data);
       setQuestionTypes(response.data.filter(qt => qt.isActive));
     } catch (error) {
       console.error('Error fetching question types:', error);
-      console.error('Error details:', error.response?.data);
-    }
-  };
-
-  const fetchQuizSettings = async () => {
-    try {
-      console.log('[QuizQuestions] Fetching quiz settings from:', `${API_BASE_URL}/quiz-settings`);
-      const response = await axios.get(`${API_BASE_URL}/quiz-settings`);
-      console.log('[QuizQuestions] Quiz settings response:', response.data);
-      setQuizSettings(response.data.filter(qs => qs.isActive).sort((a, b) => a.order - b.order));
-    } catch (error) {
-      console.error('Error fetching quiz settings:', error);
-      console.error('Error details:', error.response?.data);
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Handle question type change
+    if (name === 'questionType') {
+      const selectedType = questionTypes.find(qt => qt._id === value);
+      const typeName = selectedType?.name?.toLowerCase() || '';
+      setSelectedQuestionTypeName(typeName);
+      
+      // Set default options based on question type
+      let defaultOptions = [];
+      let defaultMatchingPairs = [
+        { columnA: '', columnB: '' },
+        { columnA: '', columnB: '' },
+        { columnA: '', columnB: '' },
+        { columnA: '', columnB: '' }
+      ];
+      
+      if (typeName.includes('mcq') || typeName.includes('multiple choice')) {
+        defaultOptions = ['', '', '', ''];
+      } else if (typeName.includes('true') || typeName.includes('false')) {
+        defaultOptions = ['True', 'False'];
+      } else if (typeName.includes('match')) {
+        // Keep default matching pairs
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        options: defaultOptions,
+        matchingPairs: defaultMatchingPairs
+      }));
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
 
-    // Reset topic when grade, subject, or level changes
     if (name === 'grade' || name === 'subject' || name === 'level') {
       setFormData(prev => ({ ...prev, [name]: value, topic: '' }));
     }
   };
 
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    if (files && files[0]) {
-      setFormData(prev => ({
-        ...prev,
-        [name]: files[0]
-      }));
+  const handleOptionChange = (index, value) => {
+    const newOptions = [...formData.options];
+    newOptions[index] = value;
+    setFormData(prev => ({ ...prev, options: newOptions }));
+  };
 
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (name === 'questionPaper') {
-          setQuestionPaperPreview(files[0].name);
-        } else if (name === 'answerKey') {
-          setAnswerKeyPreview(files[0].name);
-        }
-      };
-      reader.readAsDataURL(files[0]);
-    }
+  const handleMatchingPairChange = (index, column, value) => {
+    const newPairs = [...formData.matchingPairs];
+    newPairs[index][column] = value;
+    setFormData(prev => ({ ...prev, matchingPairs: newPairs }));
+  };
+
+  const addMatchingPair = () => {
+    setFormData(prev => ({
+      ...prev,
+      matchingPairs: [...prev.matchingPairs, { columnA: '', columnB: '' }]
+    }));
+  };
+
+  const removeMatchingPair = (index) => {
+    const newPairs = formData.matchingPairs.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, matchingPairs: newPairs }));
+  };
+
+  const addOption = () => {
+    setFormData(prev => ({ ...prev, options: [...prev.options, ''] }));
+  };
+
+  const removeOption = (index) => {
+    const newOptions = formData.options.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, options: newOptions }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const data = new FormData();
-    data.append('grade', formData.grade);
-    data.append('subject', formData.subject);
-    data.append('level', formData.level);
-    data.append('topic', formData.topic);
-    data.append('questionType', formData.questionType);
-    data.append('questionNumber', formData.questionNumber);
-    data.append('displayOrder', formData.displayOrder);
+    // Prepare options based on question type
+    let finalOptions = formData.options.filter(opt => opt.trim() !== '');
     
-    if (formData.questionPaper) {
-      data.append('questionPaper', formData.questionPaper);
+    // For True/False, ensure options are set
+    if (selectedQuestionTypeName.includes('true') || selectedQuestionTypeName.includes('false')) {
+      finalOptions = ['True', 'False'];
     }
-    if (formData.answerKey) {
-      data.append('answerKey', formData.answerKey);
+    
+    // For Match the Following, convert matching pairs to options format
+    if (selectedQuestionTypeName.includes('match')) {
+      const validPairs = formData.matchingPairs.filter(
+        pair => pair.columnA.trim() !== '' && pair.columnB.trim() !== ''
+      );
+      
+      // Store as JSON string in options or create structured format
+      finalOptions = validPairs.map((pair, index) => 
+        `${index + 1}. ${pair.columnA} → ${pair.columnB}`
+      );
     }
+
+    const data = {
+      grade: formData.grade,
+      subject: formData.subject,
+      level: formData.level,
+      topic: formData.topic,
+      questionType: formData.questionType,
+      question: formData.question,
+      answer: formData.answer,
+      options: finalOptions,
+      marks: formData.marks,
+      difficulty: formData.difficulty,
+      tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
+      displayOrder: formData.displayOrder
+    };
 
     try {
       if (editingId) {
-        await axios.put(`${API_BASE_URL}/quiz-questions/${editingId}`, data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await axios.put(`${API_BASE_URL}/quiz-questions/${editingId}`, data);
       } else {
-        await axios.post(`${API_BASE_URL}/quiz-questions`, data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await axios.post(`${API_BASE_URL}/quiz-questions`, data);
       }
       
       fetchQuizQuestions();
       resetForm();
+      alert(editingId ? 'Question updated successfully!' : 'Question added successfully!');
     } catch (error) {
       console.error('Error saving quiz question:', error);
       alert(error.response?.data?.message || 'Error saving quiz question');
@@ -240,21 +257,47 @@ const QuizQuestions = () => {
 
   const handleEdit = (quizQuestion) => {
     setEditingId(quizQuestion._id);
+    
+    const typeName = quizQuestion.questionType?.name?.toLowerCase() || '';
+    setSelectedQuestionTypeName(typeName);
+    
+    // Parse matching pairs if it's a matching question
+    let matchingPairs = [
+      { columnA: '', columnB: '' },
+      { columnA: '', columnB: '' },
+      { columnA: '', columnB: '' },
+      { columnA: '', columnB: '' }
+    ];
+    
+    if (typeName.includes('match') && quizQuestion.options && quizQuestion.options.length > 0) {
+      matchingPairs = quizQuestion.options.map(opt => {
+        const parts = opt.split(' → ');
+        if (parts.length === 2) {
+          return {
+            columnA: parts[0].replace(/^\d+\.\s*/, '').trim(),
+            columnB: parts[1].trim()
+          };
+        }
+        return { columnA: '', columnB: '' };
+      });
+    }
+    
     setFormData({
       grade: quizQuestion.grade?._id || '',
       subject: quizQuestion.subject?._id || '',
       level: quizQuestion.level || 'Basic',
       topic: quizQuestion.topic?._id || '',
       questionType: quizQuestion.questionType?._id || '',
-      questionNumber: quizQuestion.questionNumber?._id || '',
-      questionPaper: null,
-      answerKey: null,
-      displayOrder: quizQuestion.displayOrder || 0
+      question: quizQuestion.question || '',
+      answer: quizQuestion.answer || '',
+      options: quizQuestion.options || [],
+      marks: quizQuestion.marks || 1,
+      difficulty: quizQuestion.difficulty || 'Medium',
+      tags: quizQuestion.tags ? quizQuestion.tags.join(', ') : '',
+      displayOrder: quizQuestion.displayOrder || 0,
+      matchingPairs: matchingPairs
     });
-    setQuestionPaperPreview(quizQuestion.questionPaper || '');
-    setAnswerKeyPreview(quizQuestion.answerKey || '');
     
-    // Fetch topics for the selected subject when editing
     if (quizQuestion.subject?._id) {
       fetchTopicsBySubject(quizQuestion.subject._id);
     }
@@ -267,6 +310,7 @@ const QuizQuestions = () => {
       try {
         await axios.delete(`${API_BASE_URL}/quiz-questions/${id}`);
         fetchQuizQuestions();
+        alert('Question deleted successfully!');
       } catch (error) {
         console.error('Error deleting quiz question:', error);
         alert('Error deleting quiz question');
@@ -284,6 +328,217 @@ const QuizQuestions = () => {
     setShowViewModal(false);
   };
 
+  const handleImportClick = async () => {
+    setShowImportModal(true);
+    setImportResults(null);
+    setImportFile(null);
+    
+    // Fetch available names for reference
+    try {
+      const response = await axios.get(`${API_BASE_URL}/quiz-questions/import-reference`);
+      setImportReference(response.data);
+    } catch (error) {
+      console.error('Error fetching import reference:', error);
+    }
+  };
+
+  const handleImportFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setImportFile(e.target.files[0]);
+    }
+  };
+
+  const handleImportSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!importFile) {
+      alert('Please select an Excel file');
+      return;
+    }
+
+    setImporting(true);
+    const formData = new FormData();
+    formData.append('excelFile', importFile);
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/quiz-questions/import`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setImportResults(response.data);
+      fetchQuizQuestions();
+      
+      if (response.data.errorCount === 0) {
+        setTimeout(() => {
+          setShowImportModal(false);
+          setImportFile(null);
+          setImportResults(null);
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error importing quiz questions:', error);
+      alert(error.response?.data?.message || 'Error importing quiz questions');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const closeImportModal = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportResults(null);
+  };
+
+  const downloadTemplate = async () => {
+    try {
+      // Fetch available names from the API
+      const response = await axios.get(`${API_BASE_URL}/quiz-questions/import-reference`);
+      const reference = response.data;
+      
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Sample data with first row as example
+      const templateData = [
+        {
+          grade: reference.grades[0] || 'Grade 1',
+          subject: reference.subjects[0] || 'Math',
+          level: 'Basic',
+          topic: reference.topics[0] || 'Addition',
+          questionType: reference.questionTypes[0] || 'MCQ',
+          question: 'What is 2 + 2?',
+          answer: 'C',
+          options: '2,3,4,5',
+          marks: 1,
+          difficulty: 'Easy',
+          tags: 'addition,math',
+          displayOrder: 0
+        },
+        {
+          grade: '',
+          subject: '',
+          level: '',
+          topic: '',
+          questionType: '',
+          question: '',
+          answer: '',
+          options: '',
+          marks: '',
+          difficulty: '',
+          tags: '',
+          displayOrder: ''
+        },
+        {
+          grade: '',
+          subject: '',
+          level: '',
+          topic: '',
+          questionType: '',
+          question: '',
+          answer: '',
+          options: '',
+          marks: '',
+          difficulty: '',
+          tags: '',
+          displayOrder: ''
+        }
+      ];
+      
+      // Create main sheet
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 15 }, // grade
+        { wch: 20 }, // subject
+        { wch: 15 }, // level
+        { wch: 25 }, // topic
+        { wch: 25 }, // questionType
+        { wch: 50 }, // question
+        { wch: 40 }, // answer
+        { wch: 60 }, // options
+        { wch: 8 },  // marks
+        { wch: 12 }, // difficulty
+        { wch: 30 }, // tags
+        { wch: 12 }  // displayOrder
+      ];
+      
+      // Add data validation (dropdowns) - Note: This is limited in browser-generated Excel
+      // For full dropdown support, users should open in Excel and it will work
+      ws['!dataValidation'] = {
+        // Grade dropdown for rows 2-100
+        A2: {
+          type: 'list',
+          formula1: `"${reference.grades.join(',')}"`,
+          showDropDown: true
+        },
+        // Subject dropdown
+        B2: {
+          type: 'list',
+          formula1: `"${reference.subjects.join(',')}"`,
+          showDropDown: true
+        },
+        // Level dropdown
+        C2: {
+          type: 'list',
+          formula1: '"Basic,Intermediate,Advanced"',
+          showDropDown: true
+        },
+        // Topic dropdown (limited to first 50 due to Excel formula length limit)
+        D2: {
+          type: 'list',
+          formula1: `"${reference.topics.slice(0, 50).join(',')}"`,
+          showDropDown: true
+        },
+        // Question Type dropdown
+        E2: {
+          type: 'list',
+          formula1: `"${reference.questionTypes.join(',')}"`,
+          showDropDown: true
+        },
+        // Difficulty dropdown
+        J2: {
+          type: 'list',
+          formula1: '"Easy,Medium,Hard"',
+          showDropDown: true
+        }
+      };
+      
+      XLSX.utils.book_append_sheet(wb, ws, 'Quiz Questions');
+      
+      // Create a reference sheet with all available values
+      const referenceData = [
+        { Category: 'Grades', Values: reference.grades.join(', ') },
+        { Category: 'Subjects', Values: reference.subjects.join(', ') },
+        { Category: 'Topics', Values: reference.topics.join(', ') },
+        { Category: 'Question Types', Values: reference.questionTypes.join(', ') },
+        { Category: 'Levels', Values: 'Basic, Intermediate, Advanced' },
+        { Category: 'Difficulties', Values: 'Easy, Medium, Hard' },
+        { Category: '', Values: '' },
+        { Category: 'Options Format Examples', Values: '' },
+        { Category: 'MCQ', Values: 'Option A,Option B,Option C,Option D' },
+        { Category: 'True/False', Values: 'True,False' },
+        { Category: 'Match the Following', Values: 'France → Paris,Japan → Tokyo,India → New Delhi' },
+        { Category: 'Fill in Blanks', Values: '(leave empty)' }
+      ];
+      
+      const refSheet = XLSX.utils.json_to_sheet(referenceData);
+      refSheet['!cols'] = [
+        { wch: 25 },
+        { wch: 100 }
+      ];
+      XLSX.utils.book_append_sheet(wb, refSheet, 'Reference');
+      
+      // Download the file
+      XLSX.writeFile(wb, 'quiz-questions-template-with-dropdowns.xlsx');
+      
+      alert('Template downloaded! Open in Microsoft Excel or Google Sheets to see dropdown menus.');
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      alert('Error downloading template. Please try again.');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       grade: '',
@@ -291,13 +546,21 @@ const QuizQuestions = () => {
       level: 'Basic',
       topic: '',
       questionType: '',
-      questionNumber: '',
-      questionPaper: null,
-      answerKey: null,
-      displayOrder: 0
+      question: '',
+      answer: '',
+      options: [],
+      marks: 1,
+      difficulty: 'Medium',
+      tags: '',
+      displayOrder: 0,
+      matchingPairs: [
+        { columnA: '', columnB: '' },
+        { columnA: '', columnB: '' },
+        { columnA: '', columnB: '' },
+        { columnA: '', columnB: '' }
+      ]
     });
-    setQuestionPaperPreview('');
-    setAnswerKeyPreview('');
+    setSelectedQuestionTypeName('');
     setEditingId(null);
     setShowForm(false);
     setFilteredTopics([]);
@@ -311,12 +574,12 @@ const QuizQuestions = () => {
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Quiz Questions</h1>
-        <p className="text-sm text-gray-600">Upload and manage quiz question papers and answer keys</p>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Quiz Questions Bank</h1>
+        <p className="text-sm text-gray-600">Add and manage individual quiz questions for quiz generation</p>
       </div>
 
       {/* Add Button */}
-      <div className="mb-6">
+      <div className="mb-6 flex gap-3">
         <button
           onClick={() => setShowForm(!showForm)}
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -324,9 +587,13 @@ const QuizQuestions = () => {
         >
           {showForm ? 'Cancel' : '+ Add Quiz Question'}
         </button>
-        {loading && (
-          <span className="ml-3 text-sm text-gray-600">Loading data...</span>
-        )}
+        <button
+          onClick={handleImportClick}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+          disabled={loading}
+        >
+          📥 Import from Excel
+        </button>
       </div>
 
       {/* Form */}
@@ -337,8 +604,9 @@ const QuizQuestions = () => {
           </h2>
           
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Basic Info Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Grade Dropdown */}
+              {/* Grade */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Grade *
@@ -351,24 +619,15 @@ const QuizQuestions = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   <option value="">Select Grade</option>
-                  {grades.length === 0 ? (
-                    <option disabled>No grades available - Add grades in Grade Management</option>
-                  ) : (
-                    grades.map(grade => (
-                      <option key={grade._id} value={grade._id}>
-                        {grade.title || grade.name}
-                      </option>
-                    ))
-                  )}
+                  {grades.map(grade => (
+                    <option key={grade._id} value={grade._id}>
+                      {grade.title || grade.name}
+                    </option>
+                  ))}
                 </select>
-                {grades.length === 0 && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Please add grades in Grade Management first
-                  </p>
-                )}
               </div>
 
-              {/* Subject Dropdown */}
+              {/* Subject */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Subject *
@@ -381,24 +640,15 @@ const QuizQuestions = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   <option value="">Select Subject</option>
-                  {subjects.length === 0 ? (
-                    <option disabled>No subjects available - Add subjects in Learning Subjects</option>
-                  ) : (
-                    subjects.map(subject => (
-                      <option key={subject._id} value={subject._id}>
-                        {subject.name}
-                      </option>
-                    ))
-                  )}
+                  {subjects.map(subject => (
+                    <option key={subject._id} value={subject._id}>
+                      {subject.name}
+                    </option>
+                  ))}
                 </select>
-                {subjects.length === 0 && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Please add subjects in Learning Subjects first
-                  </p>
-                )}
               </div>
 
-              {/* Level Dropdown */}
+              {/* Level */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Level *
@@ -416,7 +666,7 @@ const QuizQuestions = () => {
                 </select>
               </div>
 
-              {/* Topic Dropdown */}
+              {/* Topic */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Topic *
@@ -436,14 +686,9 @@ const QuizQuestions = () => {
                     </option>
                   ))}
                 </select>
-                {formData.subject && filteredTopics.length === 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    No topics available for selected level
-                  </p>
-                )}
               </div>
 
-              {/* Question Type Dropdown */}
+              {/* Question Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Question Type *
@@ -456,55 +701,48 @@ const QuizQuestions = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   <option value="">Select Question Type</option>
-                  {questionTypes.length === 0 ? (
-                    <option disabled>No question types available - Add in Question Types</option>
-                  ) : (
-                    questionTypes.map(qt => (
-                      <option key={qt._id} value={qt._id}>
-                        {qt.name}
-                      </option>
-                    ))
-                  )}
+                  {questionTypes.map(qt => (
+                    <option key={qt._id} value={qt._id}>
+                      {qt.name}
+                    </option>
+                  ))}
                 </select>
-                {questionTypes.length === 0 && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Please add question types in Question Types first
-                  </p>
-                )}
               </div>
 
-              {/* Question Number Dropdown */}
+              {/* Difficulty */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Question Number *
+                  Difficulty
                 </label>
                 <select
-                  name="questionNumber"
-                  value={formData.questionNumber}
+                  name="difficulty"
+                  value={formData.difficulty}
                   onChange={handleInputChange}
-                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  <option value="">Select Question Number</option>
-                  {quizSettings.length === 0 ? (
-                    <option disabled>No quiz settings available - Add in Quiz Settings</option>
-                  ) : (
-                    quizSettings.map(qs => (
-                      <option key={qs._id} value={qs._id}>
-                        {qs.label} ({qs.questions} questions)
-                      </option>
-                    ))
-                  )}
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
                 </select>
-                {quizSettings.length === 0 && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Please add quiz settings in Quiz Settings first
-                  </p>
-                )}
+              </div>
+
+              {/* Marks */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Marks
+                </label>
+                <input
+                  type="number"
+                  name="marks"
+                  value={formData.marks}
+                  onChange={handleInputChange}
+                  min="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
               </div>
 
               {/* Display Order */}
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Display Order
                 </label>
@@ -515,50 +753,255 @@ const QuizQuestions = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
-              </div>
+              </div> */}
             </div>
 
-            {/* File Uploads */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              {/* Question Paper Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Question Paper * {editingId && '(Leave empty to keep current)'}
-                </label>
-                <input
-                  type="file"
-                  name="questionPaper"
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.bmp,.webp"
-                  required={!editingId}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-                {questionPaperPreview && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    📄 {questionPaperPreview}
-                  </p>
-                )}
-              </div>
+            {/* Question Text */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Question *
+              </label>
+              <textarea
+                name="question"
+                value={formData.question}
+                onChange={handleInputChange}
+                required
+                rows="3"
+                placeholder="Enter the question text..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
 
-              {/* Answer Key Upload */}
+            {/* Answer Text */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Answer *
+              </label>
+              <textarea
+                name="answer"
+                value={formData.answer}
+                onChange={handleInputChange}
+                required
+                rows="2"
+                placeholder="Enter the correct answer..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Options - Dynamic based on Question Type */}
+            {selectedQuestionTypeName && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Answer Key * {editingId && '(Leave empty to keep current)'}
+                  {selectedQuestionTypeName.includes('mcq') || selectedQuestionTypeName.includes('multiple choice') 
+                    ? 'Options (Multiple Choice) *' 
+                    : selectedQuestionTypeName.includes('true') || selectedQuestionTypeName.includes('false')
+                    ? 'Options (True/False)'
+                    : selectedQuestionTypeName.includes('match')
+                    ? 'Matching Pairs *'
+                    : 'Options (Optional)'}
                 </label>
-                <input
-                  type="file"
-                  name="answerKey"
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.bmp,.webp"
-                  required={!editingId}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-                {answerKeyPreview && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    🔑 {answerKeyPreview}
-                  </p>
+                
+                {/* Match the Following - Two Column Layout */}
+                {selectedQuestionTypeName.includes('match') && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4 mb-2">
+                      <div className="font-semibold text-sm text-gray-700 bg-blue-50 px-3 py-2 rounded">
+                        Column A
+                      </div>
+                      <div className="font-semibold text-sm text-gray-700 bg-green-50 px-3 py-2 rounded">
+                        Column B
+                      </div>
+                    </div>
+                    
+                    {formData.matchingPairs.map((pair, index) => (
+                      <div key={index} className="flex gap-2 items-center">
+                        <span className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg font-semibold text-sm min-w-[40px] text-center">
+                          {index + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={pair.columnA}
+                          onChange={(e) => handleMatchingPairChange(index, 'columnA', e.target.value)}
+                          placeholder="Item in Column A"
+                          required
+                          className="flex-1 px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50"
+                        />
+                        <span className="text-gray-400 font-bold">→</span>
+                        <input
+                          type="text"
+                          value={pair.columnB}
+                          onChange={(e) => handleMatchingPairChange(index, 'columnB', e.target.value)}
+                          placeholder="Matching item in Column B"
+                          required
+                          className="flex-1 px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-green-50"
+                        />
+                        {formData.matchingPairs.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => removeMatchingPair(index)}
+                            className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {formData.matchingPairs.length < 10 && (
+                      <button
+                        type="button"
+                        onClick={addMatchingPair}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                      >
+                        + Add Matching Pair
+                      </button>
+                    )}
+                    
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs text-blue-800">
+                        ℹ️ <strong>Instructions:</strong> Add items in Column A and their corresponding matches in Column B. 
+                        In the Answer field above, enter the correct matching sequence (e.g., "1-B, 2-A, 3-D, 4-C").
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* True/False - Fixed Options */}
+                {(selectedQuestionTypeName.includes('true') || selectedQuestionTypeName.includes('false')) && 
+                 !selectedQuestionTypeName.includes('match') && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <div className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                        True
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                        False
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      True/False options are automatically set. Enter the correct answer (True or False) in the Answer field above.
+                    </p>
+                  </div>
+                )}
+
+                {/* MCQ - Editable Options */}
+                {(selectedQuestionTypeName.includes('mcq') || selectedQuestionTypeName.includes('multiple choice')) && 
+                 !selectedQuestionTypeName.includes('match') && (
+                  <div className="space-y-2">
+                    {formData.options.map((option, index) => (
+                      <div key={index} className="flex gap-2">
+                        <span className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg font-semibold">
+                          {String.fromCharCode(65 + index)}
+                        </span>
+                        <input
+                          type="text"
+                          value={option}
+                          onChange={(e) => handleOptionChange(index, e.target.value)}
+                          placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                          required
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                        {formData.options.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => removeOption(index)}
+                            className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {formData.options.length < 6 && (
+                      <button
+                        type="button"
+                        onClick={addOption}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                      >
+                        + Add Option
+                      </button>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      Add 2-6 options. Enter the correct option letter (A, B, C, D) in the Answer field above.
+                    </p>
+                  </div>
+                )}
+
+                {/* Fill in the Blanks / Short Answer - No Options */}
+                {(selectedQuestionTypeName.includes('fill') || 
+                  selectedQuestionTypeName.includes('blank') || 
+                  selectedQuestionTypeName.includes('short') ||
+                  selectedQuestionTypeName.includes('descriptive') ||
+                  selectedQuestionTypeName.includes('long')) && 
+                 !selectedQuestionTypeName.includes('match') && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      ℹ️ This question type doesn't require options. Students will provide their own answer.
+                      Enter the expected/correct answer in the Answer field above.
+                    </p>
+                  </div>
+                )}
+
+                {/* Other Question Types - Optional Options */}
+                {!(selectedQuestionTypeName.includes('mcq') || 
+                   selectedQuestionTypeName.includes('multiple choice') ||
+                   selectedQuestionTypeName.includes('true') || 
+                   selectedQuestionTypeName.includes('false') ||
+                   selectedQuestionTypeName.includes('fill') || 
+                   selectedQuestionTypeName.includes('blank') || 
+                   selectedQuestionTypeName.includes('short') ||
+                   selectedQuestionTypeName.includes('descriptive') ||
+                   selectedQuestionTypeName.includes('long') ||
+                   selectedQuestionTypeName.includes('match')) && (
+                  <div className="space-y-2">
+                    {formData.options.map((option, index) => (
+                      <div key={index} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={option}
+                          onChange={(e) => handleOptionChange(index, e.target.value)}
+                          placeholder={`Option ${index + 1}`}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeOption(index)}
+                          className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={addOption}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                      + Add Option
+                    </button>
+                    <p className="text-xs text-gray-500">
+                      Options are optional for this question type.
+                    </p>
+                  </div>
                 )}
               </div>
+            )}
+
+            {/* Tags */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tags (comma-separated)
+              </label>
+              <input
+                type="text"
+                name="tags"
+                value={formData.tags}
+                onChange={handleInputChange}
+                placeholder="e.g., addition, basic-math, arithmetic"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
             </div>
 
             {/* Submit Buttons */}
@@ -567,7 +1010,7 @@ const QuizQuestions = () => {
                 type="submit"
                 className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors"
               >
-                {editingId ? 'Update' : 'Create'}
+                {editingId ? 'Update Question' : 'Add Question'}
               </button>
               <button
                 type="button"
@@ -583,131 +1026,105 @@ const QuizQuestions = () => {
 
       {/* Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Grade
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Subject
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Level
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Topic
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Question Type
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Questions
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Files
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Order
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {quizQuestions.length === 0 ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <td colSpan="9" className="px-6 py-4 text-center text-gray-500">
-                  No quiz questions found. Add your first one!
-                </td>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Grade
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Subject
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Level
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Topic
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Question
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Marks
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
-            ) : (
-              quizQuestions.map((quizQuestion) => (
-                <tr key={quizQuestion._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {quizQuestion.grade?.title || quizQuestion.grade?.name || 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {quizQuestion.subject?.name || 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      quizQuestion.level === 'Basic' ? 'bg-green-100 text-green-800' :
-                      quizQuestion.level === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {quizQuestion.level}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {quizQuestion.topic?.title || quizQuestion.topic?.name || 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {quizQuestion.questionType?.name || (
-                      <span className="text-orange-600 text-xs italic">Not set</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {quizQuestion.questionNumber?.questions || (
-                      <span className="text-orange-600 text-xs italic">Not set</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    <div className="flex flex-col gap-1">
-                      <a
-                        href={`${API_BASE_URL.replace('/api', '')}/${quizQuestion.questionPaper}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-xs"
-                      >
-                        📄 Question Paper
-                      </a>
-                      <a
-                        href={`${API_BASE_URL.replace('/api', '')}/${quizQuestion.answerKey}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-green-600 hover:underline text-xs"
-                      >
-                        🔑 Answer Key
-                      </a>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {quizQuestion.displayOrder}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => handleView(quizQuestion)}
-                      className="text-green-600 hover:text-green-900 mr-3"
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={() => handleEdit(quizQuestion)}
-                      className="text-blue-600 hover:text-blue-900 mr-3"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(quizQuestion._id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {quizQuestions.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
+                    No quiz questions found. Add your first one!
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                quizQuestions.map((q) => (
+                  <tr key={q._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {q.grade?.title || q.grade?.name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {q.subject?.name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        q.level === 'Basic' ? 'bg-green-100 text-green-800' :
+                        q.level === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {q.level}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {q.topic?.title || q.topic?.name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {q.questionType?.name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                      {q.question}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {q.marks}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleView(q)}
+                        className="text-green-600 hover:text-green-900 mr-3"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleEdit(q)}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(q._id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* View Modal */}
       {showViewModal && viewingQuestion && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
             <div className="sticky top-0 bg-green-600 text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
               <h2 className="text-xl font-semibold">Quiz Question Details</h2>
               <button
@@ -718,9 +1135,7 @@ const QuizQuestions = () => {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6">
-              {/* Details Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Grade</label>
@@ -728,14 +1143,12 @@ const QuizQuestions = () => {
                     {viewingQuestion.grade?.title || viewingQuestion.grade?.name || 'N/A'}
                   </p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Subject</label>
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
                     {viewingQuestion.subject?.name || 'N/A'}
                   </p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Level</label>
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
@@ -748,37 +1161,30 @@ const QuizQuestions = () => {
                     </span>
                   </p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Topic</label>
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
                     {viewingQuestion.topic?.title || viewingQuestion.topic?.name || 'N/A'}
                   </p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Question Type</label>
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
-                    {viewingQuestion.questionType?.name || (
-                      <span className="text-orange-600 italic">Not set - Please edit to add</span>
-                    )}
+                    {viewingQuestion.questionType?.name || 'N/A'}
                   </p>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Number of Questions</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Difficulty</label>
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
-                    {viewingQuestion.questionNumber?.questions ? (
-                      <>
-                        {viewingQuestion.questionNumber.questions} questions
-                        {viewingQuestion.questionNumber?.minutes && ` (${viewingQuestion.questionNumber.minutes} minutes)`}
-                      </>
-                    ) : (
-                      <span className="text-orange-600 italic">Not set - Please edit to add</span>
-                    )}
+                    {viewingQuestion.difficulty}
                   </p>
                 </div>
-
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Marks</label>
+                  <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
+                    {viewingQuestion.marks}
+                  </p>
+                </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Display Order</label>
                   <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
@@ -787,67 +1193,85 @@ const QuizQuestions = () => {
                 </div>
               </div>
 
-              {/* Files Section */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Uploaded Files</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Question Paper */}
-                  <div className="border rounded-lg p-4 bg-blue-50">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      📄 Question Paper
-                    </label>
-                    <div className="space-y-2">
-                      <a
-                        href={`${API_BASE_URL.replace('/api', '')}/${viewingQuestion.questionPaper}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-colors"
-                      >
-                        Open in New Tab
-                      </a>
-                      {viewingQuestion.questionPaper?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) && (
-                        <div className="mt-3">
-                          <img
-                            src={`${API_BASE_URL.replace('/api', '')}/${viewingQuestion.questionPaper}`}
-                            alt="Question Paper"
-                            className="max-w-full h-auto rounded border"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Answer Key */}
-                  <div className="border rounded-lg p-4 bg-green-50">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      🔑 Answer Key
-                    </label>
-                    <div className="space-y-2">
-                      <a
-                        href={`${API_BASE_URL.replace('/api', '')}/${viewingQuestion.answerKey}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm transition-colors"
-                      >
-                        Open in New Tab
-                      </a>
-                      {viewingQuestion.answerKey?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) && (
-                        <div className="mt-3">
-                          <img
-                            src={`${API_BASE_URL.replace('/api', '')}/${viewingQuestion.answerKey}`}
-                            alt="Answer Key"
-                            className="max-w-full h-auto rounded border"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
+              <div className="border-t pt-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Question</label>
+                  <p className="text-gray-900 bg-blue-50 px-4 py-3 rounded border border-blue-200">
+                    {viewingQuestion.question}
+                  </p>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Answer</label>
+                  <p className="text-gray-900 bg-green-50 px-4 py-3 rounded border border-green-200">
+                    {viewingQuestion.answer}
+                  </p>
+                </div>
+
+                {viewingQuestion.options && viewingQuestion.options.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      {viewingQuestion.questionType?.name?.toLowerCase().includes('match') 
+                        ? 'Matching Pairs' 
+                        : 'Options'}
+                    </label>
+                    
+                    {viewingQuestion.questionType?.name?.toLowerCase().includes('match') ? (
+                      // Display as matching pairs
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-4 mb-2">
+                          <div className="font-semibold text-xs text-gray-600 bg-blue-50 px-3 py-1 rounded">
+                            Column A
+                          </div>
+                          <div className="font-semibold text-xs text-gray-600 bg-green-50 px-3 py-1 rounded">
+                            Column B
+                          </div>
+                        </div>
+                        {viewingQuestion.options.map((option, index) => {
+                          const parts = option.split(' → ');
+                          const columnA = parts[0]?.replace(/^\d+\.\s*/, '').trim() || '';
+                          const columnB = parts[1]?.trim() || '';
+                          
+                          return (
+                            <div key={index} className="grid grid-cols-2 gap-4">
+                              <div className="text-gray-900 bg-blue-50 px-4 py-2 rounded border border-blue-200">
+                                {index + 1}. {columnA}
+                              </div>
+                              <div className="text-gray-900 bg-green-50 px-4 py-2 rounded border border-green-200">
+                                {columnB}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      // Display as regular options
+                      <ul className="space-y-2">
+                        {viewingQuestion.options.map((option, index) => (
+                          <li key={index} className="text-gray-900 bg-gray-50 px-4 py-2 rounded border">
+                            {String.fromCharCode(65 + index)}. {option}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {viewingQuestion.tags && viewingQuestion.tags.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Tags</label>
+                    <div className="flex flex-wrap gap-2">
+                      {viewingQuestion.tags.map((tag, index) => (
+                        <span key={index} className="px-3 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Modal Footer */}
             <div className="bg-gray-50 px-6 py-4 flex justify-end rounded-b-lg">
               <button
                 onClick={closeViewModal}
@@ -855,6 +1279,206 @@ const QuizQuestions = () => {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-blue-600 text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
+              <h2 className="text-xl font-semibold">Import Quiz Questions from Excel</h2>
+              <button
+                onClick={closeImportModal}
+                className="text-white hover:text-gray-200 text-2xl font-bold"
+                disabled={importing}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-3">
+                  Upload an Excel file (.xlsx or .xls) with quiz question data. You can use <strong>names</strong> or <strong>IDs</strong> for grade, subject, topic, and question type.
+                </p>
+                <ul className="text-xs text-gray-600 list-disc list-inside space-y-1 mb-4">
+                  <li><strong>grade</strong> - Grade name (e.g., "Grade 1") or ID (required)</li>
+                  <li><strong>subject</strong> - Subject name (e.g., "Mathematics") or ID (required)</li>
+                  <li><strong>level</strong> - Basic, Intermediate, or Advanced (required)</li>
+                  <li><strong>topic</strong> - Topic name (e.g., "Addition") or ID (required)</li>
+                  <li><strong>questionType</strong> - Question type name (e.g., "MCQ") or ID (required)</li>
+                  <li><strong>question</strong> - Question text (required)</li>
+                  <li><strong>answer</strong> - Answer text (required)</li>
+                  <li><strong>options</strong> - See formats below (optional)</li>
+                  <li><strong>marks</strong> - Marks (optional, default: 1)</li>
+                  <li><strong>difficulty</strong> - Easy, Medium, or Hard (optional, default: Medium)</li>
+                  <li><strong>tags</strong> - Comma-separated tags (optional)</li>
+                  <li><strong>displayOrder</strong> - Display order (optional, default: 0)</li>
+                </ul>
+                
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                  <p className="text-xs font-semibold text-green-800 mb-2">✨ Use Names Instead of IDs!</p>
+                  <p className="text-xs text-green-800 mb-3">
+                    You can now use readable names like "Grade 1", "Mathematics", "MCQ" instead of long database IDs. 
+                    The system will automatically look up the correct IDs. Names are case-insensitive.
+                  </p>
+                  
+                  {importReference && (
+                    <div className="mt-3 space-y-2">
+                      <details className="text-xs">
+                        <summary className="cursor-pointer font-semibold text-green-900 hover:text-green-700">
+                          📋 Available Grades ({importReference.grades.length})
+                        </summary>
+                        <div className="mt-2 pl-4 text-green-800">
+                          {importReference.grades.join(', ')}
+                        </div>
+                      </details>
+                      
+                      <details className="text-xs">
+                        <summary className="cursor-pointer font-semibold text-green-900 hover:text-green-700">
+                          📚 Available Subjects ({importReference.subjects.length})
+                        </summary>
+                        <div className="mt-2 pl-4 text-green-800">
+                          {importReference.subjects.join(', ')}
+                        </div>
+                      </details>
+                      
+                      <details className="text-xs">
+                        <summary className="cursor-pointer font-semibold text-green-900 hover:text-green-700">
+                          📖 Available Topics ({importReference.topics.length})
+                        </summary>
+                        <div className="mt-2 pl-4 text-green-800 max-h-32 overflow-y-auto">
+                          {importReference.topics.join(', ')}
+                        </div>
+                      </details>
+                      
+                      <details className="text-xs">
+                        <summary className="cursor-pointer font-semibold text-green-900 hover:text-green-700">
+                          ❓ Available Question Types ({importReference.questionTypes.length})
+                        </summary>
+                        <div className="mt-2 pl-4 text-green-800">
+                          {importReference.questionTypes.join(', ')}
+                        </div>
+                      </details>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <p className="text-xs font-semibold text-yellow-800 mb-2">📝 Options Format by Question Type:</p>
+                  <ul className="text-xs text-yellow-800 space-y-1">
+                    <li><strong>MCQ:</strong> Comma-separated options → <code>Option A,Option B,Option C,Option D</code></li>
+                    <li><strong>True/False:</strong> <code>True,False</code> (or leave empty, auto-set)</li>
+                    <li><strong>Match the Following:</strong> Arrow-separated pairs → <code>Item1 → Match1,Item2 → Match2,Item3 → Match3</code></li>
+                    <li><strong>Fill/Short Answer:</strong> Leave empty (no options needed)</li>
+                  </ul>
+                </div>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <p className="text-xs font-semibold text-blue-800 mb-2">💡 Example - Match the Following:</p>
+                  <div className="text-xs text-blue-800 space-y-1">
+                    <p><strong>Grade:</strong> Grade 2</p>
+                    <p><strong>Subject:</strong> Geography</p>
+                    <p><strong>Topic:</strong> World Capitals</p>
+                    <p><strong>Question Type:</strong> Match the Following</p>
+                    <p><strong>Question:</strong> Match countries with capitals</p>
+                    <p><strong>Answer:</strong> 1-Paris, 2-Tokyo, 3-New Delhi</p>
+                    <p><strong>Options:</strong> <code>France → Paris,Japan → Tokyo,India → New Delhi</code></p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={downloadTemplate}
+                  className="text-blue-600 hover:text-blue-800 text-sm underline font-semibold"
+                >
+                  📥 Download Excel Template with Dropdowns
+                </button>
+                <p className="text-xs text-gray-500 mt-1">
+                  Template includes dropdown menus for easy selection. Open in Microsoft Excel or Google Sheets for best experience.
+                </p>
+              </div>
+
+              <form onSubmit={handleImportSubmit}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Excel File *
+                  </label>
+                  <input
+                    type="file"
+                    onChange={handleImportFileChange}
+                    accept=".xlsx,.xls"
+                    required
+                    disabled={importing}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  {importFile && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      📄 {importFile.name}
+                    </p>
+                  )}
+                </div>
+
+                {importResults && (
+                  <div className={`mb-4 p-4 rounded-lg ${
+                    importResults.errorCount === 0 ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
+                  }`}>
+                    <h3 className="font-semibold text-sm mb-2">Import Results:</h3>
+                    <p className="text-sm">Total rows: {importResults.total}</p>
+                    <p className="text-sm text-green-600">✅ Successfully imported: {importResults.successCount}</p>
+                    {importResults.errorCount > 0 && (
+                      <>
+                        <p className="text-sm text-red-600">❌ Errors: {importResults.errorCount}</p>
+                        <div className="mt-3 max-h-60 overflow-y-auto space-y-3">
+                          <p className="text-xs font-semibold mb-2 text-red-700">Error Details:</p>
+                          {importResults.results.errors.map((error, index) => (
+                            <div key={index} className="bg-white border border-red-200 rounded p-3">
+                              <div className="flex items-start gap-2">
+                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                  Row {error.row}
+                                </span>
+                                {error.field && (
+                                  <span className="bg-orange-100 text-orange-800 text-xs font-semibold px-2 py-1 rounded">
+                                    {error.field}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-red-700 mt-2 whitespace-pre-line leading-relaxed">
+                                {error.message}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                          <p className="text-xs text-blue-800">
+                            <strong>💡 Quick Fix:</strong> Check the error details above, correct the values in your Excel file, and re-upload.
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={importing || !importFile}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {importing ? 'Importing...' : 'Import'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeImportModal}
+                    disabled={importing}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg transition-colors disabled:bg-gray-200 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

@@ -185,12 +185,12 @@ const AdminDashboard = () => {
           <Divider />
 
           {/* Subscription */}
-          <GroupHeader label="Subscription" icon={<MdCreditCard />} isOpen={subscriptionOpen} onToggle={() => setSubscriptionOpen(p => !p)} accent="#10b981" />
+          {/* <GroupHeader label="Subscription" icon={<MdCreditCard />} isOpen={subscriptionOpen} onToggle={() => setSubscriptionOpen(p => !p)} accent="#10b981" />
           {subscriptionOpen && (
             <div className="pl-2 space-y-0.5 border-l border-green-200 ml-3">
               {subscriptionItems.map(item => <NavItem key={item.path} item={item} />)}
             </div>
-          )}
+          )} */}
 
           <Divider />
 

@@ -1,6 +1,6 @@
 // Intercept image loading and fix URLs
 if (typeof window !== 'undefined') {
-  const BACKEND_URL = 'https://nudgebackend.onrender.com';
+  const BACKEND_URL = 'http://localhost:5000';
   
   // Function to fix URL
   const fixImageUrl = (url) => {

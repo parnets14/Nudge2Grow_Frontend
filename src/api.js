@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
-export const UPLOADS_URL = import.meta.env.VITE_UPLOADS_URL || "https://nudgebackend.onrender.com/uploads";
+export const UPLOADS_URL = import.meta.env.VITE_UPLOADS_URL || "http://localhost:5000/uploads";
 
 console.log('[API] BASE_URL:', BASE_URL);
 console.log('[API] UPLOADS_URL:', UPLOADS_URL);
