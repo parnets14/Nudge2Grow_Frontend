@@ -31,6 +31,9 @@ const QuizSettings = () => {
   const [editingSetting, setEditingSetting] = useState(null);
   const [saving, setSaving] = useState(false);
   const [viewSetting, setViewSetting] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   // Form state
   const [form, setForm] = useState({
@@ -92,6 +95,23 @@ const QuizSettings = () => {
   };
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Filter settings based on search term
+  const filteredSettings = settings.filter(setting =>
+    setting.label?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    setting.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredSettings.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedSettings = filteredSettings.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleSubmit = async () => {
     try {
@@ -197,6 +217,34 @@ const QuizSettings = () => {
         </button>
       </div>
 
+      {/* Search Field */}
+      <div className="mb-4">
+        <div className="relative max-w-md">
+          <input
+            type="text"
+            placeholder="Search by label or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 pl-10 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-4 focus:ring-[#00aa59]/10 transition bg-white"
+          />
+          <MdSettings className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <MdClose className="text-lg" />
+            </button>
+          )}
+        </div>
+        {searchTerm && (
+          <div className="text-xs text-gray-600 mt-2">
+            Found <span className="font-semibold text-[#00aa59]">{filteredSettings.length}</span> setting{filteredSettings.length !== 1 ? 's' : ''}
+            {filteredSettings.length > itemsPerPage && ` (showing ${startIndex + 1}-${Math.min(endIndex, filteredSettings.length)})`}
+          </div>
+        )}
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
@@ -213,25 +261,27 @@ const QuizSettings = () => {
             </tr>
           </thead>
           <tbody>
-            {settings.length === 0 ? (
+            {filteredSettings.length === 0 ? (
               <tr>
                 <td colSpan={8} className="text-center py-16 text-gray-400">
                   <MdInbox className="text-5xl text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm font-medium mb-3">No quiz settings yet</p>
-                  <button
-                    onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 bg-[#00aa59] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#008f4a] transition mx-auto"
-                  >
-                    <MdAdd /> Add Quiz Setting
-                  </button>
+                  <p className="text-sm font-medium mb-3">{searchTerm ? 'No quiz settings found matching your search' : 'No quiz settings yet'}</p>
+                  {!searchTerm && (
+                    <button
+                      onClick={() => handleOpenModal()}
+                      className="flex items-center gap-2 bg-[#00aa59] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#008f4a] transition mx-auto"
+                    >
+                      <MdAdd /> Add Quiz Setting
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (
-              settings.map((setting, i) => {
+              paginatedSettings.map((setting, i) => {
                 const iconData = AVAILABLE_ICONS.find(ic => ic.name === setting.icon);
                 return (
                   <tr key={setting._id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-5 py-3.5 text-gray-400 font-medium">{i + 1}</td>
+                    <td className="px-5 py-3.5 text-gray-400 font-medium">{startIndex + i + 1}</td>
                     <td className="px-5 py-3.5">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-2xl"
@@ -293,6 +343,46 @@ const QuizSettings = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {filteredSettings.length > itemsPerPage && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200">
+          <div className="text-sm text-gray-600">
+            Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredSettings.length)}</span> of <span className="font-semibold">{filteredSettings.length}</span> settings
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MdArrowForward className="rotate-180" /> Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg text-sm font-bold transition ${
+                    currentPage === page
+                      ? 'bg-[#00aa59] text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {showModal && (

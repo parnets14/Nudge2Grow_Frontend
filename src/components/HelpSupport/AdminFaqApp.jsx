@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from "react";
-import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdQuestionAnswer, MdVisibility } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdQuestionAnswer, MdVisibility, MdArrowBack, MdArrowForward } from "react-icons/md";
 import { api } from "../../api";
 
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#00bf62] transition";
@@ -69,6 +69,8 @@ const AdminFaqApp = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [viewItem, setViewItem] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const load = async () => {
     setLoading(true);
@@ -100,6 +102,12 @@ const AdminFaqApp = () => {
       await load();
     } catch (e) { console.error(e); }
   };
+
+  // Pagination logic
+  const totalPages = Math.ceil(items.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedItems = items.slice(startIndex, endIndex);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -138,9 +146,9 @@ const AdminFaqApp = () => {
                 <MdQuestionAnswer className="text-5xl text-gray-200 mx-auto mb-2" />
                 No FAQs yet. Add your first one!
               </td></tr>
-            ) : items.map((item, i) => (
+            ) : paginatedItems.map((item, i) => (
               <tr key={item._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                <td className="px-5 py-3.5 text-gray-400 font-medium">{i + 1}</td>
+                <td className="px-5 py-3.5 text-gray-400 font-medium">{startIndex + i + 1}</td>
                 <td className="px-5 py-3.5 font-semibold text-gray-800 max-w-xs"><p className="truncate">{item.question}</p></td>
                 <td className="px-5 py-3.5 text-gray-500 text-xs max-w-sm"><p className="truncate">{item.answer}</p></td>
                 <td className="px-5 py-3.5">
@@ -161,6 +169,44 @@ const AdminFaqApp = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {!loading && items.length > 0 && (
+        <div className="mt-6 flex items-center justify-between bg-white rounded-xl px-5 py-3 border border-gray-200">
+          <p className="text-sm text-gray-600">
+            Showing {startIndex + 1} to {Math.min(endIndex, items.length)} of {items.length} FAQ{items.length !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowBack />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold transition ${
+                  currentPage === page
+                    ? 'bg-[#00aa59] text-white'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
 
       {modalOpen && <Modal entry={editItem} onSave={handleSave} onClose={() => { setModalOpen(false); setEditItem(null); }} saving={saving} />}
       {viewItem && <ViewModal item={viewItem} onClose={() => setViewItem(null)} />}

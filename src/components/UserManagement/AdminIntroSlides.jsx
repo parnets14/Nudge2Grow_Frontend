@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdVisibility, MdSlideshow } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdVisibility, MdSlideshow, MdArrowBack, MdArrowForward } from "react-icons/md";
 import { api } from "../../api";
 
 const TITLE_COLORS = [
@@ -97,6 +97,8 @@ const AdminIntroSlides = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editSlide, setEditSlide] = useState(null);
   const [viewSlide, setViewSlide] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const load = async () => {
     setLoading(true);
@@ -126,6 +128,12 @@ const AdminIntroSlides = () => {
     try { await api.introSlides.remove(id); await load(); }
     catch (e) { console.error(e); }
   };
+
+  // Pagination logic
+  const totalPages = Math.ceil(slides.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedSlides = slides.slice(startIndex, endIndex);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -165,9 +173,9 @@ const AdminIntroSlides = () => {
                 <MdSlideshow className="text-5xl text-gray-300 mx-auto mb-2" />
                 No slides yet. Add your first one!
               </td></tr>
-            ) : slides.map((s, i) => (
+            ) : paginatedSlides.map((s, i) => (
               <tr key={s._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                <td className="px-6 py-4 text-gray-500 font-medium">{i + 1}</td>
+                <td className="px-6 py-4 text-gray-500 font-medium">{startIndex + i + 1}</td>
                 <td className="px-6 py-4 font-bold" style={{ color: s.titleColor || "#00bf62" }}>{s.title}</td>
                 <td className="px-6 py-4 text-gray-600 max-w-xs truncate">{s.description || "—"}</td>
                 <td className="px-6 py-4">
@@ -191,6 +199,44 @@ const AdminIntroSlides = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {!loading && slides.length > 0 && (
+        <div className="mt-6 flex items-center justify-between bg-white rounded-xl px-5 py-3 border border-gray-200">
+          <p className="text-sm text-gray-600">
+            Showing {startIndex + 1} to {Math.min(endIndex, slides.length)} of {slides.length} slide{slides.length !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowBack />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold transition ${
+                  currentPage === page
+                    ? 'bg-[#00aa59] text-white'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
 
       {modalOpen && <Modal entry={editSlide} onSave={handleSave} onClose={() => { setModalOpen(false); setEditSlide(null); }} saving={saving} />}
       {viewSlide && <ViewModal slide={viewSlide} onClose={() => setViewSlide(null)} />}

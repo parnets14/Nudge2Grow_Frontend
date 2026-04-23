@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
+import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdVisibility, MdFileUpload, MdDownload, MdQuiz, MdArrowBack, MdArrowForward } from "react-icons/md";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#00bf62] transition";
 
 const QuizQuestions = () => {
   const [quizQuestions, setQuizQuestions] = useState([]);
@@ -13,6 +16,9 @@ const QuizQuestions = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
   
   const [formData, setFormData] = useState({
     grade: '',
@@ -566,57 +572,118 @@ const QuizQuestions = () => {
     setFilteredTopics([]);
   };
 
+  const filteredQuestions = quizQuestions.filter(q =>
+    q.question?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    q.answer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    q.grade?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    q.grade?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    q.subject?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    q.topic?.topic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    q.topic?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    q.questionType?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    q.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedQuestions = filteredQuestions.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   if (loading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>;
   }
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-gray-50 p-8">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Quiz Questions Bank</h1>
-        <p className="text-sm text-gray-600">Add and manage individual quiz questions for quiz generation</p>
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[#00bf62] flex items-center justify-center shadow shrink-0">
+            <MdQuiz className="text-white text-xl" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Quiz Questions Bank</h1>
+            <p className="text-gray-500 text-xs mt-0.5">Add and manage individual quiz questions for quiz generation</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={handleImportClick}
+            disabled={loading}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow transition disabled:bg-gray-400"
+          >
+            <MdFileUpload className="text-lg" /> Import Excel
+          </button>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            disabled={loading}
+            className="flex items-center gap-2 bg-[#00bf62] hover:bg-[#00a055] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow transition disabled:bg-gray-400"
+          >
+            <MdAdd className="text-lg" /> {showForm ? 'Cancel' : 'Add Question'}
+          </button>
+        </div>
       </div>
 
-      {/* Add Button */}
-      <div className="mb-6 flex gap-3">
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-          disabled={loading}
-        >
-          {showForm ? 'Cancel' : '+ Add Quiz Question'}
-        </button>
-        <button
-          onClick={handleImportClick}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-          disabled={loading}
-        >
-          📥 Import from Excel
-        </button>
-      </div>
+      {/* Search Bar */}
+      {!showForm && (
+        <div className="mb-4 relative">
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔍</span>
+            <input
+              type="text"
+              placeholder="Search by question, answer, grade, subject, topic, type, or tags..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#00bf62] transition text-sm"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+              >
+                <MdClose className="text-xl" />
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <p className="text-xs text-gray-500 mt-1.5">Found {filteredQuestions.length} question{filteredQuestions.length !== 1 ? 's' : ''}
+            {filteredQuestions.length > itemsPerPage && ` (showing ${startIndex + 1}-${Math.min(endIndex, filteredQuestions.length)})`}</p>
+          )}
+        </div>
+      )}
 
       {/* Form */}
       {showForm && !loading && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">
-            {editingId ? 'Edit Quiz Question' : 'Add New Quiz Question'}
-          </h2>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+            <div className="w-8 h-8 rounded-lg bg-[#00bf62] flex items-center justify-center">
+              <MdQuiz className="text-white text-lg" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">
+              {editingId ? 'Edit Quiz Question' : 'Add New Quiz Question'}
+            </h2>
+          </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Basic Info Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Grade */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Grade *
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Grade <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="grade"
                   value={formData.grade}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className={inp}
                 >
                   <option value="">Select Grade</option>
                   {grades.map(grade => (
@@ -629,15 +696,15 @@ const QuizQuestions = () => {
 
               {/* Subject */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Subject *
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Subject <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="subject"
                   value={formData.subject}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className={inp}
                 >
                   <option value="">Select Subject</option>
                   {subjects.map(subject => (
@@ -650,15 +717,15 @@ const QuizQuestions = () => {
 
               {/* Level */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Level *
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Level <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="level"
                   value={formData.level}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className={inp}
                 >
                   <option value="Basic">Basic</option>
                   <option value="Intermediate">Intermediate</option>
@@ -668,8 +735,8 @@ const QuizQuestions = () => {
 
               {/* Topic */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Topic *
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Topic <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="topic"
@@ -677,7 +744,7 @@ const QuizQuestions = () => {
                   onChange={handleInputChange}
                   required
                   disabled={!formData.subject}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100"
+                  className={`${inp} disabled:bg-gray-100`}
                 >
                   <option value="">Select Topic</option>
                   {filteredTopics.map(topic => (
@@ -690,15 +757,15 @@ const QuizQuestions = () => {
 
               {/* Question Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Question Type *
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Question Type <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="questionType"
                   value={formData.questionType}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className={inp}
                 >
                   <option value="">Select Question Type</option>
                   {questionTypes.map(qt => (
@@ -711,14 +778,14 @@ const QuizQuestions = () => {
 
               {/* Difficulty */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-bold text-gray-700 mb-1">
                   Difficulty
                 </label>
                 <select
                   name="difficulty"
                   value={formData.difficulty}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className={inp}
                 >
                   <option value="Easy">Easy</option>
                   <option value="Medium">Medium</option>
@@ -728,7 +795,7 @@ const QuizQuestions = () => {
 
               {/* Marks */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-bold text-gray-700 mb-1">
                   Marks
                 </label>
                 <input
@@ -737,7 +804,7 @@ const QuizQuestions = () => {
                   value={formData.marks}
                   onChange={handleInputChange}
                   min="1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className={inp}
                 />
               </div>
 
@@ -758,8 +825,8 @@ const QuizQuestions = () => {
 
             {/* Question Text */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Question *
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Question <span className="text-red-500">*</span>
               </label>
               <textarea
                 name="question"
@@ -768,14 +835,14 @@ const QuizQuestions = () => {
                 required
                 rows="3"
                 placeholder="Enter the question text..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className={`${inp} resize-none`}
               />
             </div>
 
             {/* Answer Text */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Answer *
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Answer <span className="text-red-500">*</span>
               </label>
               <textarea
                 name="answer"
@@ -784,14 +851,14 @@ const QuizQuestions = () => {
                 required
                 rows="2"
                 placeholder="Enter the correct answer..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className={`${inp} resize-none`}
               />
             </div>
 
             {/* Options - Dynamic based on Question Type */}
             {selectedQuestionTypeName && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-bold text-gray-700 mb-2">
                   {selectedQuestionTypeName.includes('mcq') || selectedQuestionTypeName.includes('multiple choice') 
                     ? 'Options (Multiple Choice) *' 
                     : selectedQuestionTypeName.includes('true') || selectedQuestionTypeName.includes('false')
@@ -991,7 +1058,7 @@ const QuizQuestions = () => {
 
             {/* Tags */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-bold text-gray-700 mb-1">
                 Tags (comma-separated)
               </label>
               <input
@@ -1000,22 +1067,22 @@ const QuizQuestions = () => {
                 value={formData.tags}
                 onChange={handleInputChange}
                 placeholder="e.g., addition, basic-math, arithmetic"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className={inp}
               />
             </div>
 
             {/* Submit Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-4 border-t border-gray-200 mt-4">
               <button
                 type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors"
+                className="flex items-center gap-2 bg-[#00bf62] hover:bg-[#00a055] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow transition"
               >
-                {editingId ? 'Update Question' : 'Add Question'}
+                <MdSave /> {editingId ? 'Update Question' : 'Add Question'}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg transition-colors"
+                className="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition"
               >
                 Cancel
               </button>
@@ -1025,192 +1092,223 @@ const QuizQuestions = () => {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-[#00bf62] text-white">
+              <th className="px-5 py-3.5 text-left font-semibold w-10">No</th>
+              <th className="px-5 py-3.5 text-left font-semibold">Grade</th>
+              <th className="px-5 py-3.5 text-left font-semibold">Subject</th>
+              <th className="px-5 py-3.5 text-left font-semibold">Level</th>
+              <th className="px-5 py-3.5 text-left font-semibold">Topic</th>
+              <th className="px-5 py-3.5 text-left font-semibold">Type</th>
+              <th className="px-5 py-3.5 text-left font-semibold">Question</th>
+              <th className="px-5 py-3.5 text-left font-semibold w-16">Marks</th>
+              <th className="px-5 py-3.5 text-center font-semibold w-40">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredQuestions.length === 0 ? (
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Grade
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Subject
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Level
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Topic
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Question
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Marks
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <td colSpan="9" className="text-center py-16 text-gray-400">
+                  <MdQuiz className="text-5xl text-gray-200 mx-auto mb-2" />
+                  {searchTerm ? `No questions found matching "${searchTerm}"` : "No quiz questions found. Add your first one!"}
+                </td>
               </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {quizQuestions.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
-                    No quiz questions found. Add your first one!
+            ) : (
+              paginatedQuestions.map((q, i) => (
+                <tr key={q._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                  <td className="px-5 py-3.5 text-gray-400 font-medium">{startIndex + i + 1}</td>
+                  <td className="px-5 py-3.5 text-gray-800 text-xs">
+                    {q.grade?.title || q.grade?.name || 'N/A'}
                   </td>
-                </tr>
-              ) : (
-                quizQuestions.map((q) => (
-                  <tr key={q._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {q.grade?.title || q.grade?.name || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {q.subject?.name || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        q.level === 'Basic' ? 'bg-green-100 text-green-800' :
-                        q.level === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {q.level}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {q.topic?.title || q.topic?.name || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {q.questionType?.name || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                      {q.question}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {q.marks}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="px-5 py-3.5 text-gray-800 text-xs">
+                    {q.subject?.name || 'N/A'}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${
+                      q.level === 'Basic' ? 'bg-[#00bf62]/10 text-[#00bf62]' :
+                      q.level === 'Intermediate' ? 'bg-amber-100 text-amber-600' :
+                      'bg-red-100 text-red-600'
+                    }`}>
+                      {q.level}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-gray-800 text-xs max-w-[150px]">
+                    <p className="truncate">{q.topic?.topic || q.topic?.title || 'N/A'}</p>
+                  </td>
+                  <td className="px-5 py-3.5 text-gray-600 text-xs">
+                    {q.questionType?.name || 'N/A'}
+                  </td>
+                  <td className="px-5 py-3.5 text-gray-800 text-xs max-w-xs">
+                    <p className="truncate font-medium">{q.question}</p>
+                  </td>
+                  <td className="px-5 py-3.5 text-gray-800 font-semibold text-center">
+                    {q.marks}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleView(q)}
-                        className="text-green-600 hover:text-green-900 mr-3"
+                        className="text-[#00bf62] hover:text-[#00a055] transition"
+                        title="View"
                       >
-                        View
+                        <MdVisibility className="text-xl" />
                       </button>
                       <button
                         onClick={() => handleEdit(q)}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        className="text-amber-400 hover:text-amber-500 transition"
+                        title="Edit"
                       >
-                        Edit
+                        <MdEdit className="text-xl" />
                       </button>
                       <button
                         onClick={() => handleDelete(q._id)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-red-500 hover:text-red-600 transition"
+                        title="Delete"
                       >
-                        Delete
+                        <MdDelete className="text-xl" />
                       </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
+      {/* Pagination */}
+      {filteredQuestions.length > itemsPerPage && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200">
+          <div className="text-sm text-gray-600">
+            Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredQuestions.length)}</span> of <span className="font-semibold">{filteredQuestions.length}</span> questions
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MdArrowBack /> Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg text-sm font-bold transition ${
+                    currentPage === page
+                      ? 'bg-[#00bf62] text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
       {/* View Modal */}
       {showViewModal && viewingQuestion && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-green-600 text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
-              <h2 className="text-xl font-semibold">Quiz Question Details</h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-[#00bf62] px-6 py-4 flex justify-between items-center sticky top-0">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <MdVisibility /> Quiz Question Details
+              </h2>
               <button
                 onClick={closeViewModal}
-                className="text-white hover:text-gray-200 text-2xl font-bold"
+                className="text-white/80 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition"
               >
-                ×
+                <MdClose className="text-2xl" />
               </button>
             </div>
 
             <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Grade</label>
-                  <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Grade</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
                     {viewingQuestion.grade?.title || viewingQuestion.grade?.name || 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Subject</label>
-                  <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Subject</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
                     {viewingQuestion.subject?.name || 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Level</label>
-                  <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      viewingQuestion.level === 'Basic' ? 'bg-green-100 text-green-800' :
-                      viewingQuestion.level === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Level</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                    <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${
+                      viewingQuestion.level === 'Basic' ? 'bg-[#00bf62]/10 text-[#00bf62]' :
+                      viewingQuestion.level === 'Intermediate' ? 'bg-amber-100 text-amber-600' :
+                      'bg-red-100 text-red-600'
                     }`}>
                       {viewingQuestion.level}
                     </span>
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Topic</label>
-                  <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
-                    {viewingQuestion.topic?.title || viewingQuestion.topic?.name || 'N/A'}
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Topic</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                    {viewingQuestion.topic?.topic || viewingQuestion.topic?.title || 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Question Type</label>
-                  <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Question Type</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
                     {viewingQuestion.questionType?.name || 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Difficulty</label>
-                  <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Difficulty</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
                     {viewingQuestion.difficulty}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Marks</label>
-                  <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Marks</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg font-semibold">
                     {viewingQuestion.marks}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Display Order</label>
-                  <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Display Order</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
                     {viewingQuestion.displayOrder}
                   </p>
                 </div>
               </div>
 
-              <div className="border-t pt-6 space-y-4">
+              <div className="border-t border-gray-200 pt-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Question</label>
-                  <p className="text-gray-900 bg-blue-50 px-4 py-3 rounded border border-blue-200">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Question</label>
+                  <p className="text-sm text-gray-900 bg-blue-50 px-4 py-3 rounded-lg border border-blue-200">
                     {viewingQuestion.question}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Answer</label>
-                  <p className="text-gray-900 bg-green-50 px-4 py-3 rounded border border-green-200">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Answer</label>
+                  <p className="text-sm text-gray-900 bg-[#00bf62]/10 px-4 py-3 rounded-lg border border-[#00bf62]/20 font-medium">
                     {viewingQuestion.answer}
                   </p>
                 </div>
 
                 {viewingQuestion.options && viewingQuestion.options.length > 0 && (
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
                       {viewingQuestion.questionType?.name?.toLowerCase().includes('match') 
                         ? 'Matching Pairs' 
                         : 'Options'}
@@ -1220,10 +1318,10 @@ const QuizQuestions = () => {
                       // Display as matching pairs
                       <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-4 mb-2">
-                          <div className="font-semibold text-xs text-gray-600 bg-blue-50 px-3 py-1 rounded">
+                          <div className="text-xs font-bold text-gray-600 bg-blue-50 px-3 py-1.5 rounded-lg">
                             Column A
                           </div>
-                          <div className="font-semibold text-xs text-gray-600 bg-green-50 px-3 py-1 rounded">
+                          <div className="text-xs font-bold text-gray-600 bg-[#00bf62]/10 px-3 py-1.5 rounded-lg">
                             Column B
                           </div>
                         </div>
@@ -1234,10 +1332,10 @@ const QuizQuestions = () => {
                           
                           return (
                             <div key={index} className="grid grid-cols-2 gap-4">
-                              <div className="text-gray-900 bg-blue-50 px-4 py-2 rounded border border-blue-200">
+                              <div className="text-sm text-gray-900 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
                                 {index + 1}. {columnA}
                               </div>
-                              <div className="text-gray-900 bg-green-50 px-4 py-2 rounded border border-green-200">
+                              <div className="text-sm text-gray-900 bg-[#00bf62]/10 px-4 py-2 rounded-lg border border-[#00bf62]/20">
                                 {columnB}
                               </div>
                             </div>
@@ -1248,8 +1346,8 @@ const QuizQuestions = () => {
                       // Display as regular options
                       <ul className="space-y-2">
                         {viewingQuestion.options.map((option, index) => (
-                          <li key={index} className="text-gray-900 bg-gray-50 px-4 py-2 rounded border">
-                            {String.fromCharCode(65 + index)}. {option}
+                          <li key={index} className="text-sm text-gray-900 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                            <span className="font-bold text-[#00bf62]">{String.fromCharCode(65 + index)}.</span> {option}
                           </li>
                         ))}
                       </ul>
@@ -1259,10 +1357,10 @@ const QuizQuestions = () => {
 
                 {viewingQuestion.tags && viewingQuestion.tags.length > 0 && (
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Tags</label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Tags</label>
                     <div className="flex flex-wrap gap-2">
                       {viewingQuestion.tags.map((tag, index) => (
-                        <span key={index} className="px-3 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                        <span key={index} className="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full">
                           {tag}
                         </span>
                       ))}
@@ -1272,10 +1370,10 @@ const QuizQuestions = () => {
               </div>
             </div>
 
-            <div className="bg-gray-50 px-6 py-4 flex justify-end rounded-b-lg">
+            <div className="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-200">
               <button
                 onClick={closeViewModal}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg transition-colors"
+                className="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition"
               >
                 Close
               </button>
@@ -1286,16 +1384,18 @@ const QuizQuestions = () => {
 
       {/* Import Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="bg-blue-600 text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
-              <h2 className="text-xl font-semibold">Import Quiz Questions from Excel</h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-blue-600 px-6 py-4 flex justify-between items-center sticky top-0">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <MdFileUpload className="text-2xl" /> Import Quiz Questions from Excel
+              </h2>
               <button
                 onClick={closeImportModal}
-                className="text-white hover:text-gray-200 text-2xl font-bold"
                 disabled={importing}
+                className="text-white/80 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition disabled:opacity-50"
               >
-                ×
+                <MdClose className="text-2xl" />
               </button>
             </div>
 
@@ -1304,7 +1404,7 @@ const QuizQuestions = () => {
                 <p className="text-sm text-gray-600 mb-3">
                   Upload an Excel file (.xlsx or .xls) with quiz question data. You can use <strong>names</strong> or <strong>IDs</strong> for grade, subject, topic, and question type.
                 </p>
-                <ul className="text-xs text-gray-600 list-disc list-inside space-y-1 mb-4">
+                <ul className="text-xs text-gray-600 list-disc list-inside space-y-1 mb-4 bg-gray-50 p-3 rounded-lg">
                   <li><strong>grade</strong> - Grade name (e.g., "Grade 1") or ID (required)</li>
                   <li><strong>subject</strong> - Subject name (e.g., "Mathematics") or ID (required)</li>
                   <li><strong>level</strong> - Basic, Intermediate, or Advanced (required)</li>
@@ -1319,9 +1419,11 @@ const QuizQuestions = () => {
                   <li><strong>displayOrder</strong> - Display order (optional, default: 0)</li>
                 </ul>
                 
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                  <p className="text-xs font-semibold text-green-800 mb-2">✨ Use Names Instead of IDs!</p>
-                  <p className="text-xs text-green-800 mb-3">
+                <div className="bg-[#00bf62]/10 border border-[#00bf62]/20 rounded-xl p-4 mb-4">
+                  <p className="text-xs font-bold text-[#00bf62] mb-2 flex items-center gap-2">
+                    <span className="text-lg">✨</span> Use Names Instead of IDs!
+                  </p>
+                  <p className="text-xs text-gray-700 mb-3">
                     You can now use readable names like "Grade 1", "Mathematics", "MCQ" instead of long database IDs. 
                     The system will automatically look up the correct IDs. Names are case-insensitive.
                   </p>
@@ -1329,37 +1431,37 @@ const QuizQuestions = () => {
                   {importReference && (
                     <div className="mt-3 space-y-2">
                       <details className="text-xs">
-                        <summary className="cursor-pointer font-semibold text-green-900 hover:text-green-700">
+                        <summary className="cursor-pointer font-bold text-gray-700 hover:text-[#00bf62] transition">
                           📋 Available Grades ({importReference.grades.length})
                         </summary>
-                        <div className="mt-2 pl-4 text-green-800">
+                        <div className="mt-2 pl-4 text-gray-600 text-xs">
                           {importReference.grades.join(', ')}
                         </div>
                       </details>
                       
                       <details className="text-xs">
-                        <summary className="cursor-pointer font-semibold text-green-900 hover:text-green-700">
+                        <summary className="cursor-pointer font-bold text-gray-700 hover:text-[#00bf62] transition">
                           📚 Available Subjects ({importReference.subjects.length})
                         </summary>
-                        <div className="mt-2 pl-4 text-green-800">
+                        <div className="mt-2 pl-4 text-gray-600 text-xs">
                           {importReference.subjects.join(', ')}
                         </div>
                       </details>
                       
                       <details className="text-xs">
-                        <summary className="cursor-pointer font-semibold text-green-900 hover:text-green-700">
+                        <summary className="cursor-pointer font-bold text-gray-700 hover:text-[#00bf62] transition">
                           📖 Available Topics ({importReference.topics.length})
                         </summary>
-                        <div className="mt-2 pl-4 text-green-800 max-h-32 overflow-y-auto">
+                        <div className="mt-2 pl-4 text-gray-600 text-xs max-h-32 overflow-y-auto">
                           {importReference.topics.join(', ')}
                         </div>
                       </details>
                       
                       <details className="text-xs">
-                        <summary className="cursor-pointer font-semibold text-green-900 hover:text-green-700">
+                        <summary className="cursor-pointer font-bold text-gray-700 hover:text-[#00bf62] transition">
                           ❓ Available Question Types ({importReference.questionTypes.length})
                         </summary>
-                        <div className="mt-2 pl-4 text-green-800">
+                        <div className="mt-2 pl-4 text-gray-600 text-xs">
                           {importReference.questionTypes.join(', ')}
                         </div>
                       </details>
@@ -1367,44 +1469,33 @@ const QuizQuestions = () => {
                   )}
                 </div>
                 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                  <p className="text-xs font-semibold text-yellow-800 mb-2">📝 Options Format by Question Type:</p>
-                  <ul className="text-xs text-yellow-800 space-y-1">
-                    <li><strong>MCQ:</strong> Comma-separated options → <code>Option A,Option B,Option C,Option D</code></li>
-                    <li><strong>True/False:</strong> <code>True,False</code> (or leave empty, auto-set)</li>
-                    <li><strong>Match the Following:</strong> Arrow-separated pairs → <code>Item1 → Match1,Item2 → Match2,Item3 → Match3</code></li>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                  <p className="text-xs font-bold text-amber-800 mb-2 flex items-center gap-2">
+                    <span className="text-lg">📝</span> Options Format by Question Type:
+                  </p>
+                  <ul className="text-xs text-amber-800 space-y-1">
+                    <li><strong>MCQ:</strong> Comma-separated options → <code className="bg-white px-1.5 py-0.5 rounded">Option A,Option B,Option C,Option D</code></li>
+                    <li><strong>True/False:</strong> <code className="bg-white px-1.5 py-0.5 rounded">True,False</code> (or leave empty, auto-set)</li>
+                    <li><strong>Match the Following:</strong> Arrow-separated pairs → <code className="bg-white px-1.5 py-0.5 rounded">Item1 → Match1,Item2 → Match2</code></li>
                     <li><strong>Fill/Short Answer:</strong> Leave empty (no options needed)</li>
                   </ul>
                 </div>
                 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                  <p className="text-xs font-semibold text-blue-800 mb-2">💡 Example - Match the Following:</p>
-                  <div className="text-xs text-blue-800 space-y-1">
-                    <p><strong>Grade:</strong> Grade 2</p>
-                    <p><strong>Subject:</strong> Geography</p>
-                    <p><strong>Topic:</strong> World Capitals</p>
-                    <p><strong>Question Type:</strong> Match the Following</p>
-                    <p><strong>Question:</strong> Match countries with capitals</p>
-                    <p><strong>Answer:</strong> 1-Paris, 2-Tokyo, 3-New Delhi</p>
-                    <p><strong>Options:</strong> <code>France → Paris,Japan → Tokyo,India → New Delhi</code></p>
-                  </div>
-                </div>
-                
                 <button
                   onClick={downloadTemplate}
-                  className="text-blue-600 hover:text-blue-800 text-sm underline font-semibold"
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-bold underline transition"
                 >
-                  📥 Download Excel Template with Dropdowns
+                  <MdDownload className="text-lg" /> Download Excel Template with Dropdowns
                 </button>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 mt-1.5">
                   Template includes dropdown menus for easy selection. Open in Microsoft Excel or Google Sheets for best experience.
                 </p>
               </div>
 
               <form onSubmit={handleImportSubmit}>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Excel File *
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                    Select Excel File <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="file"
@@ -1412,35 +1503,35 @@ const QuizQuestions = () => {
                     accept=".xlsx,.xls"
                     required
                     disabled={importing}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#00bf62] transition text-sm disabled:bg-gray-100"
                   />
                   {importFile && (
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-xs text-gray-600 mt-1.5 flex items-center gap-1">
                       📄 {importFile.name}
                     </p>
                   )}
                 </div>
 
                 {importResults && (
-                  <div className={`mb-4 p-4 rounded-lg ${
-                    importResults.errorCount === 0 ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
+                  <div className={`mb-4 p-4 rounded-xl ${
+                    importResults.errorCount === 0 ? 'bg-[#00bf62]/10 border border-[#00bf62]/20' : 'bg-amber-50 border border-amber-200'
                   }`}>
-                    <h3 className="font-semibold text-sm mb-2">Import Results:</h3>
+                    <h3 className="font-bold text-sm mb-2">Import Results:</h3>
                     <p className="text-sm">Total rows: {importResults.total}</p>
-                    <p className="text-sm text-green-600">✅ Successfully imported: {importResults.successCount}</p>
+                    <p className="text-sm text-[#00bf62] font-semibold">✅ Successfully imported: {importResults.successCount}</p>
                     {importResults.errorCount > 0 && (
                       <>
-                        <p className="text-sm text-red-600">❌ Errors: {importResults.errorCount}</p>
+                        <p className="text-sm text-red-600 font-semibold">❌ Errors: {importResults.errorCount}</p>
                         <div className="mt-3 max-h-60 overflow-y-auto space-y-3">
-                          <p className="text-xs font-semibold mb-2 text-red-700">Error Details:</p>
+                          <p className="text-xs font-bold mb-2 text-red-700">Error Details:</p>
                           {importResults.results.errors.map((error, index) => (
-                            <div key={index} className="bg-white border border-red-200 rounded p-3">
+                            <div key={index} className="bg-white border border-red-200 rounded-lg p-3">
                               <div className="flex items-start gap-2">
                                 <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
                                   Row {error.row}
                                 </span>
                                 {error.field && (
-                                  <span className="bg-orange-100 text-orange-800 text-xs font-semibold px-2 py-1 rounded">
+                                  <span className="bg-orange-100 text-orange-800 text-xs font-bold px-2 py-1 rounded">
                                     {error.field}
                                   </span>
                                 )}
@@ -1451,7 +1542,7 @@ const QuizQuestions = () => {
                             </div>
                           ))}
                         </div>
-                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <p className="text-xs text-blue-800">
                             <strong>💡 Quick Fix:</strong> Check the error details above, correct the values in your Excel file, and re-upload.
                           </p>
@@ -1465,15 +1556,15 @@ const QuizQuestions = () => {
                   <button
                     type="submit"
                     disabled={importing || !importFile}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 bg-[#00bf62] hover:bg-[#00a055] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow transition disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    {importing ? 'Importing...' : 'Import'}
+                    <MdFileUpload /> {importing ? 'Importing...' : 'Import'}
                   </button>
                   <button
                     type="button"
                     onClick={closeImportModal}
                     disabled={importing}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg transition-colors disabled:bg-gray-200 disabled:cursor-not-allowed"
+                    className="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>

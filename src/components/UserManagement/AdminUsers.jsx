@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MdPeople, MdPhone, MdEmail, MdSearch, MdRefresh, MdClose, MdDelete, MdVisibility, MdChildCare, MdSchool, MdCake, MdMenuBook } from "react-icons/md";
+import { MdPeople, MdPhone, MdEmail, MdSearch, MdRefresh, MdClose, MdDelete, MdVisibility, MdChildCare, MdSchool, MdCake, MdMenuBook, MdArrowBack, MdArrowForward } from "react-icons/md";
 import { api } from "../../api";
 
 const StudentModal = ({ parent, beyondSchoolMap, avatarMap, onClose, onDelete }) => {
@@ -141,6 +141,8 @@ const AdminUsers = () => {
   const [avatarMap, setAvatarMap] = useState({});
   const [subjectMap, setSubjectMap] = useState({});
   const [viewParent, setViewParent] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const load = async () => {
     setLoading(true);
@@ -187,6 +189,17 @@ const AdminUsers = () => {
       p.children?.some(c => c.name?.toLowerCase().includes(q));
   });
 
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedParents = filtered.slice(startIndex, endIndex);
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       {/* Header */}
@@ -218,6 +231,9 @@ const AdminUsers = () => {
         <input className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#00bf62] transition"
           placeholder="Search by phone, email or student name..."
           value={search} onChange={e => setSearch(e.target.value)} />
+        {search && (
+          <p className="text-xs text-gray-500 mt-2">Found {filtered.length} user{filtered.length !== 1 ? 's' : ''}</p>
+        )}
       </div>
 
       {/* Cards — one card per parent */}
@@ -231,7 +247,7 @@ const AdminUsers = () => {
             <MdPeople className="text-5xl text-gray-200 mx-auto mb-2" />
             {search ? "No users match your search." : "No users registered yet."}
           </div>
-        ) : filtered.map((parent, i) => {
+        ) : paginatedParents.map((parent, i) => {
           const activeIdx = parent.activeChildIndex ?? 0;
           const children = parent.children || [];
 
@@ -240,7 +256,7 @@ const AdminUsers = () => {
               {/* Parent contact header */}
               <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-100">
                 <div className="flex items-center gap-4">
-                  <span className="text-xs font-bold text-gray-300 w-5">{i + 1}</span>
+                  <span className="text-xs font-bold text-gray-300 w-5">{startIndex + i + 1}</span>
                   <div className="flex items-center gap-1.5 text-sm text-gray-700">
                     <MdPhone className="text-[#00bf62]" />{parent.countryCode} {parent.phone}
                   </div>
@@ -339,6 +355,44 @@ const AdminUsers = () => {
           );
         })}
       </div>
+
+      {/* Pagination */}
+      {!loading && !loadError && filtered.length > 0 && (
+        <div className="mt-6 flex items-center justify-between bg-white rounded-xl px-5 py-3 border border-gray-200">
+          <p className="text-sm text-gray-600">
+            Showing {startIndex + 1} to {Math.min(endIndex, filtered.length)} of {filtered.length} user{filtered.length !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowBack />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold transition ${
+                  currentPage === page
+                    ? 'bg-[#00aa59] text-white'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
 
       {viewParent && (
         <StudentModal

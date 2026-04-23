@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdPsychology, MdVisibility } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdPsychology, MdVisibility, MdArrowBack, MdArrowForward } from "react-icons/md";
 import { api } from "../../api";
 
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#00bf62] transition";
@@ -76,10 +76,16 @@ const AdminTodaysRiddle = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [viewItem, setViewItem] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const load = async () => {
     setLoading(true);
-    try { const res = await api.riddles.getAll(); setItems(res.data || res || []); }
+    try { 
+      const res = await api.riddles.getAll(); 
+      setItems(res.data || res || []);
+    }
     catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -99,6 +105,24 @@ const AdminTodaysRiddle = () => {
     try { await api.riddles.remove(id); await load(); } catch (e) { console.error(e); }
   };
 
+  // Filter items based on search term
+  const filteredItems = items.filter(item =>
+    item.question?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.answer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.hint?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="flex justify-between items-center mb-6">
@@ -117,6 +141,33 @@ const AdminTodaysRiddle = () => {
         </button>
       </div>
 
+      {/* Search Field */}
+      <div className="mb-4">
+        <div className="relative max-w-md">
+          <input
+            type="text"
+            placeholder="Search riddles by question, answer, or hint..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 pl-10 text-sm focus:outline-none focus:border-[#00bf62] focus:ring-4 focus:ring-[#00bf62]/10 transition bg-white"
+          />
+          <MdPsychology className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <MdClose className="text-lg" />
+            </button>
+          )}
+        </div>
+        {searchTerm && (
+          <div className="text-xs text-gray-600 mt-2">
+            Found <span className="font-semibold text-[#00bf62]">{filteredItems.length}</span> riddle{filteredItems.length !== 1 ? 's' : ''}
+          </div>
+        )}
+      </div>
+
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -132,14 +183,14 @@ const AdminTodaysRiddle = () => {
           <tbody>
             {loading ? (
               <tr><td colSpan={6} className="text-center py-16 text-gray-400">Loading...</td></tr>
-            ) : items.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <tr><td colSpan={6} className="text-center py-16 text-gray-400">
                 <MdPsychology className="text-5xl text-gray-200 mx-auto mb-2" />
-                No riddles yet. Add your first one!
+                {searchTerm ? "No riddles found matching your search" : "No riddles yet. Add your first one!"}
               </td></tr>
-            ) : items.map((item, i) => (
+            ) : paginatedItems.map((item, i) => (
               <tr key={item._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                <td className="px-5 py-3.5 text-gray-400 font-medium">{i + 1}</td>
+                <td className="px-5 py-3.5 text-gray-400 font-medium">{startIndex + i + 1}</td>
                 <td className="px-5 py-3.5 text-gray-800 max-w-xs"><p className="truncate font-medium">{item.question}</p></td>
                 <td className="px-5 py-3.5 text-[#00bf62] font-semibold text-xs">{item.answer}</td>
                 <td className="px-5 py-3.5 text-gray-400 text-xs italic">{item.hint || "—"}</td>
@@ -169,6 +220,44 @@ const AdminTodaysRiddle = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {!loading && filteredItems.length > 0 && (
+        <div className="mt-6 flex items-center justify-between bg-white rounded-xl px-5 py-3 border border-gray-200">
+          <p className="text-sm text-gray-600">
+            Showing {startIndex + 1} to {Math.min(endIndex, filteredItems.length)} of {filteredItems.length} riddle{filteredItems.length !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowBack />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold transition ${
+                  currentPage === page
+                    ? 'bg-[#00aa59] text-white'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
 
       {modalOpen && <Modal entry={editItem} onSave={handleSave} onClose={() => { setModalOpen(false); setEditItem(null); }} saving={saving} />}
       {viewItem && <ViewModal item={viewItem} onClose={() => setViewItem(null)} />}

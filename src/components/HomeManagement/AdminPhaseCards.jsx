@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdLayers, MdVisibility } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdLayers, MdVisibility, MdSearch, MdArrowBack, MdArrowForward } from "react-icons/md";
 import { api } from "../../api";
 import { getImageUrl } from "../../utils/imageUrl";
 
@@ -85,10 +85,16 @@ const AdminPhaseCards = () => {
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const load = async () => {
     setLoading(true);
-    try { const res = await api.phaseCards.getAll(); setItems(res.data || res || []); }
+    try { 
+      const res = await api.phaseCards.getAll(); 
+      setItems(res.data || res || []);
+    }
     catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -113,6 +119,22 @@ const AdminPhaseCards = () => {
     catch (e) { console.error(e); }
   };
 
+  const filteredItems = items.filter(item =>
+    item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="flex justify-between items-center mb-6">
@@ -131,6 +153,31 @@ const AdminPhaseCards = () => {
         </button>
       </div>
 
+      {/* Search Bar */}
+      <div className="mb-4 relative">
+        <div className="relative">
+          <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
+          <input
+            type="text"
+            placeholder="Search by title or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#00bf62] transition text-sm"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+            >
+              <MdClose className="text-xl" />
+            </button>
+          )}
+        </div>
+        {searchTerm && (
+          <p className="text-xs text-gray-500 mt-1.5">Found {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</p>
+        )}
+      </div>
+
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -146,14 +193,14 @@ const AdminPhaseCards = () => {
           <tbody>
             {loading ? (
               <tr><td colSpan={6} className="text-center py-16 text-gray-400">Loading...</td></tr>
-            ) : items.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <tr><td colSpan={6} className="text-center py-16 text-gray-400">
                 <MdLayers className="text-5xl text-gray-200 mx-auto mb-2" />
-                No cards yet. Add your first one!
+                {searchTerm ? `No cards found matching "${searchTerm}"` : "No cards yet. Add your first one!"}
               </td></tr>
-            ) : items.map((item, i) => (
+            ) : paginatedItems.map((item, i) => (
               <tr key={item._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                <td className="px-5 py-3.5 text-gray-400 font-medium">{i + 1}</td>
+                <td className="px-5 py-3.5 text-gray-400 font-medium">{startIndex + i + 1}</td>
                 <td className="px-5 py-3.5">
                   {item.image
                     ? <img src={getImageUrl(item.image)} className="w-12 h-10 rounded-lg object-cover border border-gray-200" alt={item.title} />
@@ -178,6 +225,44 @@ const AdminPhaseCards = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {!loading && filteredItems.length > 0 && (
+        <div className="mt-6 flex items-center justify-between bg-white rounded-xl px-5 py-3 border border-gray-200">
+          <p className="text-sm text-gray-600">
+            Showing {startIndex + 1} to {Math.min(endIndex, filteredItems.length)} of {filteredItems.length} card{filteredItems.length !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowBack />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold transition ${
+                  currentPage === page
+                    ? 'bg-[#00aa59] text-white'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
 
       {modalOpen && <Modal entry={editItem} onSave={handleSave} onClose={() => { setModalOpen(false); setEditItem(null); }} saving={saving} />}
     </div>

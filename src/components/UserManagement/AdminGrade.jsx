@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MdAdd, MdEdit, MdDelete, MdSave, MdClose, MdSchool } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdSave, MdClose, MdSchool, MdArrowBack, MdArrowForward } from "react-icons/md";
 import { api } from "../../api";
 
 const AdminGrade = () => {
@@ -7,6 +7,9 @@ const AdminGrade = () => {
   const [title, setTitle] = useState("");
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const load = async () => {
     setLoading(true);
@@ -41,6 +44,22 @@ const AdminGrade = () => {
   };
 
   const handleEdit = (grade) => { setTitle(grade.title); setEditId(grade._id); };
+
+  // Filter grades based on search term
+  const filteredGrades = grades.filter(g =>
+    g.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredGrades.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedGrades = filteredGrades.slice(startIndex, endIndex);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -82,6 +101,33 @@ const AdminGrade = () => {
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Search Field */}
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="relative max-w-md">
+            <input
+              type="text"
+              placeholder="Search grades..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 pl-10 text-sm focus:outline-none focus:border-[#00bf62] focus:ring-4 focus:ring-[#00bf62]/10 transition bg-white"
+            />
+            <MdSchool className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <MdClose className="text-lg" />
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <div className="text-xs text-gray-600 mt-2">
+              Found <span className="font-semibold text-[#00bf62]">{filteredGrades.length}</span> grade{filteredGrades.length !== 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
+        
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-[#00bf62] text-white">
@@ -96,16 +142,16 @@ const AdminGrade = () => {
               <tr>
                 <td colSpan={4} className="text-center py-16 text-gray-400">Loading...</td>
               </tr>
-            ) : grades.length === 0 ? (
+            ) : filteredGrades.length === 0 ? (
               <tr>
                 <td colSpan={4} className="text-center py-16 text-gray-400">
                   <MdSchool className="text-5xl text-gray-300 mx-auto mb-2" />
-                  No grades yet. Add one above.
+                  {searchTerm ? "No grades found matching your search" : "No grades yet. Add one above."}
                 </td>
               </tr>
-            ) : grades.map((grade, i) => (
+            ) : paginatedGrades.map((grade, i) => (
               <tr key={grade._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                <td className="px-6 py-4 text-gray-500 font-medium">{i + 1}</td>
+                <td className="px-6 py-4 text-gray-500 font-medium">{startIndex + i + 1}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-[#00bf62]/10 flex items-center justify-center shrink-0">
@@ -134,6 +180,44 @@ const AdminGrade = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {!loading && filteredGrades.length > 0 && (
+        <div className="mt-6 flex items-center justify-between bg-white rounded-xl px-5 py-3 border border-gray-200">
+          <p className="text-sm text-gray-600">
+            Showing {startIndex + 1} to {Math.min(endIndex, filteredGrades.length)} of {filteredGrades.length} grade{filteredGrades.length !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowBack />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold transition ${
+                  currentPage === page
+                    ? 'bg-[#00aa59] text-white'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

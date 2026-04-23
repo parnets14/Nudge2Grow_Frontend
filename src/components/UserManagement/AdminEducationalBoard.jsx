@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { MdAdd, MdEdit, MdDelete, MdSave, MdClose, MdSchool } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdSave, MdClose, MdSchool, MdArrowBack, MdArrowForward } from "react-icons/md";
 import { api } from "../../api";
 
 const PRESET_BOARDS = ["CBSE", "ICSE", "State Board", "IB", "Cambridge"];
@@ -13,6 +13,8 @@ const AdminEducationalBoard = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const load = async () => {
     setLoading(true);
@@ -72,6 +74,12 @@ const AdminEducationalBoard = () => {
     try { await api.educationalBoards.remove(id); load(); }
     catch (err) { console.error(err); }
   };
+
+  // Pagination logic
+  const totalPages = Math.ceil(boards.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedBoards = boards.slice(startIndex, endIndex);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -147,9 +155,9 @@ const AdminEducationalBoard = () => {
                   No boards added yet.
                 </td>
               </tr>
-            ) : boards.map((board, i) => (
+            ) : paginatedBoards.map((board, i) => (
               <tr key={board._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                <td className="px-6 py-4 text-gray-500 font-medium">{i + 1}</td>
+                <td className="px-6 py-4 text-gray-500 font-medium">{startIndex + i + 1}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-[#00bf62]/10 flex items-center justify-center shrink-0">
@@ -178,6 +186,44 @@ const AdminEducationalBoard = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {!loading && boards.length > 0 && (
+        <div className="mt-6 flex items-center justify-between bg-white rounded-xl px-5 py-3 border border-gray-200">
+          <p className="text-sm text-gray-600">
+            Showing {startIndex + 1} to {Math.min(endIndex, boards.length)} of {boards.length} board{boards.length !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowBack />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold transition ${
+                  currentPage === page
+                    ? 'bg-[#00aa59] text-white'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -130,6 +130,9 @@ const QuestionTypes = () => {
   const [editingType, setEditingType] = useState(null);
   const [saving, setSaving] = useState(false);
   const [viewType, setViewType] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   // Form state
   const [form, setForm] = useState({
@@ -198,6 +201,24 @@ const QuestionTypes = () => {
       setTagInput('');
     }
   };
+
+  // Filter question types based on search term
+  const filteredQuestionTypes = questionTypes.filter(type =>
+    type.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    type.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    type.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredQuestionTypes.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTypes = filteredQuestionTypes.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleRemoveTag = (tagToRemove) => {
     set('tags', form.tags.filter(tag => tag !== tagToRemove));
@@ -294,6 +315,34 @@ const QuestionTypes = () => {
         </button>
       </div>
 
+      {/* Search Field */}
+      <div className="mb-4">
+        <div className="relative max-w-md">
+          <input
+            type="text"
+            placeholder="Search by name, description, or tags..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 pl-10 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-4 focus:ring-[#00aa59]/10 transition bg-white"
+          />
+          <MdQuiz className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <MdClose className="text-lg" />
+            </button>
+          )}
+        </div>
+        {searchTerm && (
+          <div className="text-xs text-gray-600 mt-2">
+            Found <span className="font-semibold text-[#00aa59]">{filteredQuestionTypes.length}</span> question type{filteredQuestionTypes.length !== 1 ? 's' : ''}
+            {filteredQuestionTypes.length > itemsPerPage && ` (showing ${startIndex + 1}-${Math.min(endIndex, filteredQuestionTypes.length)})`}
+          </div>
+        )}
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
@@ -309,24 +358,26 @@ const QuestionTypes = () => {
             </tr>
           </thead>
           <tbody>
-            {questionTypes.length === 0 ? (
+            {filteredQuestionTypes.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-center py-16 text-gray-400">
                   <MdInbox className="text-5xl text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm font-medium mb-3">No question types yet</p>
-                  <button
-                    onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 bg-[#00aa59] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#008f4a] transition mx-auto"
-                  >
-                    <MdAdd /> Add Question Type
-                  </button>
+                  <p className="text-sm font-medium mb-3">{searchTerm ? 'No question types found matching your search' : 'No question types yet'}</p>
+                  {!searchTerm && (
+                    <button
+                      onClick={() => handleOpenModal()}
+                      className="flex items-center gap-2 bg-[#00aa59] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#008f4a] transition mx-auto"
+                    >
+                      <MdAdd /> Add Question Type
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (
-              questionTypes.map((type, i) => {
+              paginatedTypes.map((type, i) => {
                 return (
                   <tr key={type._id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-5 py-3.5 text-gray-400 font-medium">{i + 1}</td>
+                    <td className="px-5 py-3.5 text-gray-400 font-medium">{startIndex + i + 1}</td>
                     <td className="px-5 py-3.5">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-2xl"
@@ -401,6 +452,46 @@ const QuestionTypes = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {filteredQuestionTypes.length > itemsPerPage && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200">
+          <div className="text-sm text-gray-600">
+            Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredQuestionTypes.length)}</span> of <span className="font-semibold">{filteredQuestionTypes.length}</span> question types
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MdArrowForward className="rotate-180" /> Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg text-sm font-bold transition ${
+                    currentPage === page
+                      ? 'bg-[#00aa59] text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {showModal && (

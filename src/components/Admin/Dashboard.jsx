@@ -123,7 +123,7 @@ const AdminDashboard = () => {
     if (p.includes("subscription/plans"))          return "Subscription Plans";
     if (p.includes("subscription/testimonials"))   return "Testimonials";
     if (p.includes("subscription/faq"))            return "FAQ";
-    if (p.includes("learning-subjects/subjects"))  return "Subjects";
+    if (p.includes("Learning-Subjects"))           return "Learning Subjects";
     if (p.includes("question-types"))              return "Question Types";
     if (p.includes("quiz-settings"))               return "Quiz Settings";
     if (p.includes("quiz-questions"))              return "Quiz Questions";
@@ -136,13 +136,13 @@ const AdminDashboard = () => {
   const hSub = "text-gray-400";
 
   return (
-    <div className={`flex min-h-screen ${bg} transition-colors duration-300`}>
+    <div className={`flex h-screen ${bg} transition-colors duration-300 overflow-hidden`}>
 
       {/* ── Sidebar ── */}
-      <aside className="w-[260px] bg-white text-black flex flex-col shadow-2xl shrink-0 rounded-r-3xl overflow-hidden border-r border-gray-200">
+      <aside className="w-[260px] bg-white text-black flex flex-col shadow-2xl shrink-0 rounded-r-3xl border-r border-gray-200 h-full">
 
         {/* Logo */}
-        <div className="px-5 pt-6 pb-4 border-b border-gray-200">
+        <div className="px-5 pt-6 pb-4 border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl overflow-hidden bg-gray-100 p-0.5 shadow-lg shrink-0">
               <img src={logo} alt="Logo" className="w-full h-full object-contain" />
@@ -157,7 +157,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-2.5 py-3 overflow-y-auto space-y-0.5 scrollbar-thin scrollbar-thumb-gray-300">
+        <nav className="flex-1 px-2.5 py-3 overflow-y-auto space-y-0.5 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
 
           {/* User Management */}
           <GroupHeader label="User Management" icon={<MdPeople />} isOpen={userMgmtOpen} onToggle={() => setUserMgmtOpen(p => !p)} />
@@ -226,7 +226,7 @@ const AdminDashboard = () => {
         </nav>
 
         {/* Logout */}
-        <div className="px-2.5 py-3 border-t border-gray-200">
+        <div className="px-2.5 py-3 border-t border-gray-200 shrink-0">
           <button onClick={handleLogout}
             className="w-full px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 hover:text-red-700 rounded-xl transition font-bold text-sm flex items-center justify-center gap-2">
             <MdLogout className="text-lg" /> Logout
@@ -235,7 +235,7 @@ const AdminDashboard = () => {
       </aside>
 
       {/* ── Main ── */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
 
         {/* Top Header */}
         <header className={`${hBg} border-b px-8 py-4 flex items-center justify-between shadow-sm shrink-0 transition-colors duration-300`}>

@@ -404,7 +404,14 @@ const AddSubjectModal = ({ editing, saving, onClose, onSave }) => {
       const res = await fetch('/api/upload/image', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Upload failed');
-      set("imageUrl", data.url);
+      
+      // Extract just the path from the full URL (e.g., /uploads/filename.png)
+      let imagePath = data.url;
+      if (imagePath.includes('/uploads/')) {
+        imagePath = imagePath.substring(imagePath.indexOf('/uploads/'));
+      }
+      
+      set("imageUrl", imagePath);
     } catch (err) {
       alert("Image upload failed: " + err.message);
     } finally {
@@ -494,13 +501,69 @@ const AddSubjectModal = ({ editing, saving, onClose, onSave }) => {
 
 // ── Tab: Subjects list ────────────────────────────────────────────────────────
 const TabSubjects = ({ subjects, onEdit, onDelete, onAdd, refreshing }) => {
-  const regular = subjects;
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
+  
+  // Filter subjects based on search term
+  const filteredSubjects = subjects.filter(s => 
+    s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // Pagination logic
+  const totalPages = Math.ceil(filteredSubjects.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedSubjects = filteredSubjects.slice(startIndex, endIndex);
+  
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+  
+  const regular = paginatedSubjects;
+  
   return (
     <div className="p-6 space-y-5 bg-gray-50 min-h-screen">
       {refreshing && <div className="fixed top-4 right-4 z-50 bg-[#00aa59] text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg">Saving…</div>}
-      <div className="flex justify-end">
-        <button onClick={onAdd} className="flex items-center gap-2 bg-[#00aa59] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-[#008f4a] transition shadow-md"><MdAdd className="text-lg" /> Add Subject</button>
+      
+      <div className="flex items-center justify-between gap-4">
+        {/* Search Field */}
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search subjects by name or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-4 focus:ring-[#00aa59]/10 transition bg-white"
+            />
+            <MdInbox className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <MdClose className="text-lg" />
+              </button>
+            )}
+          </div>
+        </div>
+        
+        <button onClick={onAdd} className="flex items-center gap-2 bg-[#00aa59] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-[#008f4a] transition shadow-md">
+          <MdAdd className="text-lg" /> Add Subject
+        </button>
       </div>
+      
+      {/* Results count */}
+      {searchTerm && (
+        <div className="text-sm text-gray-600">
+          Found <span className="font-semibold text-[#00aa59]">{filteredSubjects.length}</span> subject{filteredSubjects.length !== 1 ? 's' : ''}
+          {filteredSubjects.length > itemsPerPage && ` (showing ${startIndex + 1}-${Math.min(endIndex, filteredSubjects.length)})`}
+        </div>
+      )}
+      
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -516,12 +579,14 @@ const TabSubjects = ({ subjects, onEdit, onDelete, onAdd, refreshing }) => {
             {regular.length === 0 ? (
               <tr><td colSpan={5} className="text-center py-16 text-gray-400">
                 <MdInbox className="text-5xl text-gray-200 mx-auto mb-2" />
-                <p className="text-sm font-medium mb-3">No subjects yet</p>
-                <button onClick={onAdd} className="flex items-center gap-2 bg-[#00aa59] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#008f4a] transition mx-auto"><MdAdd /> Add Subject</button>
+                <p className="text-sm font-medium mb-3">{searchTerm ? "No subjects found matching your search" : "No subjects yet"}</p>
+                {!searchTerm && (
+                  <button onClick={onAdd} className="flex items-center gap-2 bg-[#00aa59] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#008f4a] transition mx-auto"><MdAdd /> Add Subject</button>
+                )}
               </td></tr>
             ) : regular.map((s, i) => (
               <tr key={s._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                <td className="px-5 py-3.5 text-gray-400 font-medium">{i + 1}</td>
+                <td className="px-5 py-3.5 text-gray-400 font-medium">{startIndex + i + 1}</td>
                 <td className="px-5 py-3.5">
                   {s.imageUrl
                     ? <img src={getImageUrl(s.imageUrl)} alt={s.name} className="w-10 h-10 rounded-xl object-cover border border-gray-200" />
@@ -545,6 +610,46 @@ const TabSubjects = ({ subjects, onEdit, onDelete, onAdd, refreshing }) => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {filteredSubjects.length > itemsPerPage && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200">
+          <div className="text-sm text-gray-600">
+            Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredSubjects.length)}</span> of <span className="font-semibold">{filteredSubjects.length}</span> subjects
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MdArrowBack /> Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg text-sm font-bold transition ${
+                    currentPage === page
+                      ? 'bg-[#00aa59] text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -772,18 +877,30 @@ const GreatJobModal = ({ subject, onClose, onSaved }) => {
 
 // ── Add/Edit Topic Modal ──────────────────────────────────────────────────────
 const TopicFormModal = ({ editing, subjects, saving, onClose, onSave }) => {
+  // Format date for input field (YYYY-MM-DD)
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [form, setForm] = useState({
     subjectId:   editing?.subjectId   || '',
-    title:       editing?.title       || '',
+    topic:       editing?.topic || '',  // Only load topic if it exists
+    title:       editing?.title || '',  // Load title as-is
     description: editing?.description || '',
     imageUrl:    editing?.imageUrl    || '',
     level:       editing?.level       || 'Basic',
     grade:       editing?.grade       || '',
+    scheduledDate: formatDateForInput(editing?.scheduledDate) || '',
   });
   const [uploading, setUploading] = useState(false);
   const [grades, setGrades] = useState([]);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const valid = form.subjectId && form.title.trim();
+  const valid = form.subjectId && form.topic.trim();
 
   useEffect(() => {
     api.grades.getAll()
@@ -872,16 +989,33 @@ const TopicFormModal = ({ editing, subjects, saving, onClose, onSave }) => {
             )}
           </div>
 
+          {/* Topic */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Topic *</label>
+            <input className={inp} placeholder="e.g. Addition, Photosynthesis…" value={form.topic} onChange={e => set('topic', e.target.value)} />
+          </div>
+
           {/* Title */}
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Title *</label>
-            <input className={inp} placeholder="e.g. Addition, Photosynthesis…" value={form.title} onChange={e => set('title', e.target.value)} />
+            <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Title</label>
+            <input className={inp} placeholder="e.g. Understanding Addition Basics…" value={form.title} onChange={e => set('title', e.target.value)} />
           </div>
 
           {/* Description */}
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Description</label>
             <textarea className={`${inp} resize-none`} rows={3} placeholder="Short description…" value={form.description} onChange={e => set('description', e.target.value)} />
+          </div>
+
+          {/* Scheduled Date */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Scheduled Date</label>
+            <input 
+              type="date" 
+              className={inp} 
+              value={form.scheduledDate} 
+              onChange={e => set('scheduledDate', e.target.value)} 
+            />
           </div>
         </div>
 
@@ -906,6 +1040,9 @@ const TabTopics = ({ subjects }) => {
   const [editing, setEditing]     = useState(null);
   const [viewing, setViewing]     = useState(null);
   const [saving, setSaving]       = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const load = async () => {
     setLoading(true);
@@ -925,7 +1062,10 @@ const TabTopics = ({ subjects }) => {
       else await api.topics.create(form);
       setShowModal(false); setEditing(null);
       await load();
-    } catch (e) { alert('Failed to save topic'); }
+    } catch (e) { 
+      const errorMessage = e.response?.data?.message || 'Failed to save topic';
+      alert(errorMessage);
+    }
     finally { setSaving(false); }
   };
 
@@ -941,14 +1081,64 @@ const TabTopics = ({ subjects }) => {
     return 'bg-green-100 text-green-700';
   };
 
+  // Filter topics based on search term
+  const filteredTopics = topics.filter(t =>
+    t.topic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.level?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.grade?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredTopics.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTopics = filteredTopics.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   return (
     <div className="p-6 space-y-5 bg-gray-50 min-h-screen">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-4">
+        {/* Search Field */}
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search topics by name, subject, level, or grade..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-4 focus:ring-[#00aa59]/10 transition bg-white"
+            />
+            <MdBook className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <MdClose className="text-lg" />
+              </button>
+            )}
+          </div>
+        </div>
+        
         <button onClick={() => { setEditing(null); setShowModal(true); }}
           className="flex items-center gap-2 bg-[#00aa59] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-[#008f4a] transition shadow-md">
           <MdAdd className="text-lg" /> Add Topic
         </button>
       </div>
+
+      {/* Results count */}
+      {searchTerm && (
+        <div className="text-sm text-gray-600">
+          Found <span className="font-semibold text-[#00aa59]">{filteredTopics.length}</span> topic{filteredTopics.length !== 1 ? 's' : ''}
+          {filteredTopics.length > itemsPerPage && ` (showing ${startIndex + 1}-${Math.min(endIndex, filteredTopics.length)})`}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
@@ -956,35 +1146,41 @@ const TabTopics = ({ subjects }) => {
             <tr className="bg-[#00aa59] text-white">
               <th className="px-5 py-3.5 text-left font-semibold w-12">No</th>
               <th className="px-5 py-3.5 text-left font-semibold w-20">Image</th>
+              <th className="px-5 py-3.5 text-left font-semibold">Topic</th>
               <th className="px-5 py-3.5 text-left font-semibold">Title</th>
               <th className="px-5 py-3.5 text-left font-semibold">Subject</th>
               <th className="px-5 py-3.5 text-left font-semibold">Level</th>
               <th className="px-5 py-3.5 text-left font-semibold">Grade</th>
+              <th className="px-5 py-3.5 text-left font-semibold">Scheduled Date</th>
               <th className="px-5 py-3.5 text-center font-semibold w-28">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="text-center py-16 text-gray-400">Loading…</td></tr>
-            ) : topics.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-16 text-gray-400">
+              <tr><td colSpan={9} className="text-center py-16 text-gray-400">Loading…</td></tr>
+            ) : filteredTopics.length === 0 ? (
+              <tr><td colSpan={9} className="text-center py-16 text-gray-400">
                 <MdInbox className="text-5xl text-gray-200 mx-auto mb-2" />
-                <p className="text-sm font-medium">No topics yet</p>
+                <p className="text-sm font-medium">{searchTerm ? "No topics found matching your search" : "No topics yet"}</p>
               </td></tr>
-            ) : topics.map((t, i) => (
+            ) : paginatedTopics.map((t, i) => (
               <tr key={t._id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="px-5 py-3.5 text-gray-400 font-medium">{i + 1}</td>
+                <td className="px-5 py-3.5 text-gray-400 font-medium">{startIndex + i + 1}</td>
                 <td className="px-5 py-3.5">
                   {t.imageUrl
                     ? <img src={getImageUrl(t.imageUrl)} alt={t.title} className="w-10 h-10 rounded-xl object-cover border border-gray-200" />
                     : <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><MdImage className="text-xl" /></div>}
                 </td>
-                <td className="px-5 py-3.5 font-semibold text-gray-800">{t.title}</td>
+                <td className="px-5 py-3.5 font-semibold text-gray-800">{t.topic || t.title}</td>
+                <td className="px-5 py-3.5 text-gray-600">{t.title || '—'}</td>
                 <td className="px-5 py-3.5 text-gray-600">{t.subjectName || '—'}</td>
                 <td className="px-5 py-3.5">
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${levelColor(t.level)}`}>{t.level}</span>
                 </td>
                 <td className="px-5 py-3.5 text-gray-600">{t.grade || '—'}</td>
+                <td className="px-5 py-3.5 text-gray-600">
+                  {t.scheduledDate ? new Date(t.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                </td>
                 <td className="px-5 py-3.5">
                   <div className="flex items-center justify-center gap-3">
                     <button onClick={() => setViewing(t)} title="View" className="text-[#00aa59] hover:text-[#008f4a] transition"><MdVisibility className="text-xl" /></button>
@@ -997,6 +1193,46 @@ const TabTopics = ({ subjects }) => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {filteredTopics.length > itemsPerPage && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200">
+          <div className="text-sm text-gray-600">
+            Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredTopics.length)}</span> of <span className="font-semibold">{filteredTopics.length}</span> topics
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MdArrowBack /> Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg text-sm font-bold transition ${
+                    currentPage === page
+                      ? 'bg-[#00aa59] text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <TopicFormModal
@@ -1020,12 +1256,16 @@ const TabTopics = ({ subjects }) => {
                 <img src={getImageUrl(viewing.imageUrl)} alt={viewing.title} className="w-full h-48 object-cover rounded-2xl border border-gray-200" />
               )}
               <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Title</p><p className="text-sm font-semibold text-gray-800">{viewing.title}</p></div>
+                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Topic</p><p className="text-sm font-semibold text-gray-800">{viewing.topic || viewing.title}</p></div>
+                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Title</p><p className="text-sm text-gray-700">{viewing.title || '—'}</p></div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Subject</p><p className="text-sm text-gray-700">{viewing.subjectName || '—'}</p></div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Level</p>
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${viewing.level === 'Advanced' ? 'bg-red-100 text-red-600' : viewing.level === 'Intermediate' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{viewing.level}</span>
                 </div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Grade</p><p className="text-sm text-gray-700">{viewing.grade || '—'}</p></div>
+                {viewing.scheduledDate && (
+                  <div className="col-span-2"><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Scheduled Date</p><p className="text-sm text-gray-700">📅 {new Date(viewing.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p></div>
+                )}
               </div>
               {viewing.description && (
                 <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Description</p><p className="text-sm text-gray-600 leading-relaxed">{viewing.description}</p></div>
@@ -1064,18 +1304,30 @@ const ContentTab = ({ apiKey, columns, renderForm, emptyLabel }) => {
   const [editing, setEditing]   = useState(null);
   const [viewing, setViewing]   = useState(null);
   const [saving, setSaving]     = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   // Filter topics by selected subject in form
   const [formSubjectId, setFormSubjectId] = useState('');
   const filteredTopics = topics.filter(t => !formSubjectId || String(t.subjectId) === String(formSubjectId));
 
+  // Pagination logic
+  const totalPages = Math.ceil(items.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedItems = items.slice(startIndex, endIndex);
+
   const load = async () => {
     setLoading(true);
-    try { const d = await api[apiKey].getAll(); setItems(Array.isArray(d) ? d : []); }
+    try { 
+      const d = await api[apiKey].getAll(); 
+      const dataArray = Array.isArray(d) ? d : [];
+      setItems(dataArray); // Keep original database order
+    }
     catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [apiKey]);
 
   const handleSave = async (form) => {
     setSaving(true);
@@ -1125,9 +1377,9 @@ const ContentTab = ({ apiKey, columns, renderForm, emptyLabel }) => {
                 <MdInbox className="text-5xl text-gray-200 mx-auto mb-2" />
                 <p className="text-sm">No {emptyLabel.toLowerCase()}s yet</p>
               </td></tr>
-            ) : items.map((item, i) => (
+            ) : paginatedItems.map((item, i) => (
               <tr key={item._id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                <td className="px-4 py-3 text-gray-400">{startIndex + i + 1}</td>
                 <td className="px-4 py-3 text-gray-700">{item.subjectName || '—'}</td>
                 <td className="px-4 py-3 text-gray-700">{item.topicTitle || '—'}</td>
                 <td className="px-4 py-3"><span className={`text-xs font-bold px-2.5 py-1 rounded-full ${levelColor(item.level)}`}>{item.level}</span></td>
@@ -1145,6 +1397,46 @@ const ContentTab = ({ apiKey, columns, renderForm, emptyLabel }) => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {items.length > itemsPerPage && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200">
+          <div className="text-sm text-gray-600">
+            Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, items.length)}</span> of <span className="font-semibold">{items.length}</span> items
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MdArrowBack /> Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg text-sm font-bold transition ${
+                    currentPage === page
+                      ? 'bg-[#00aa59] text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next <MdArrowForward />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {showModal && renderForm({
@@ -1230,6 +1522,7 @@ const FlashcardsQAPromptsTab = () => {
   const [editing, setEditing]   = useState(null);
   const [viewing, setViewing]   = useState(null);
   const [formSubjectId, setFormSubjectId] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const filteredTopics = topics.filter(t => !formSubjectId || String(t.subjectId) === String(formSubjectId));
 
   const [form, setForm]         = useState({ subjectId: '', topicId: '', level: 'Basic', grade: '' });
@@ -1289,14 +1582,51 @@ const FlashcardsQAPromptsTab = () => {
 
   const levelColor = l => l === 'Advanced' ? 'bg-red-100 text-red-600' : l === 'Intermediate' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
 
+  // Filter content sets based on search term
+  const filteredSets = sets.filter(s =>
+    s.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.topicTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.level?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.grade?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen space-y-5">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-4">
+        {/* Search Field */}
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by subject, topic, level, or grade..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-4 focus:ring-[#00aa59]/10 transition bg-white"
+            />
+            <MdStyle className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <MdClose className="text-lg" />
+              </button>
+            )}
+          </div>
+        </div>
+        
         <button onClick={() => { resetForm(); setShowModal(true); }}
           className="flex items-center gap-2 bg-[#00aa59] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-[#008f4a] transition shadow-md">
           <MdAdd className="text-lg" /> Add
         </button>
       </div>
+
+      {/* Results count */}
+      {searchTerm && (
+        <div className="text-sm text-gray-600">
+          Found <span className="font-semibold text-[#00aa59]">{filteredSets.length}</span> content set{filteredSets.length !== 1 ? 's' : ''}
+        </div>
+      )}
 
       {/* One row per content set */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -1317,12 +1647,12 @@ const FlashcardsQAPromptsTab = () => {
           <tbody>
             {loading ? (
               <tr><td colSpan={9} className="text-center py-16 text-gray-400">Loading…</td></tr>
-            ) : sets.length === 0 ? (
+            ) : filteredSets.length === 0 ? (
               <tr><td colSpan={9} className="text-center py-16 text-gray-400">
                 <MdInbox className="text-5xl text-gray-200 mx-auto mb-2" />
-                <p className="text-sm">No content added yet</p>
+                <p className="text-sm">{searchTerm ? "No content found matching your search" : "No content added yet"}</p>
               </td></tr>
-            ) : sets.map((s, i) => (
+            ) : filteredSets.map((s, i) => (
               <tr key={s._id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 <td className="px-4 py-3 text-gray-400">{i + 1}</td>
                 <td className="px-4 py-3 font-semibold text-gray-800">{s.subjectName || '—'}</td>
@@ -1531,6 +1861,7 @@ const LearnDetailsTab = () => {
   const [editing, setEditing]   = useState(null);
   const [viewing, setViewing]   = useState(null);
   const [formSubjectId, setFormSubjectId] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const filteredTopics = topics.filter(t => !formSubjectId || String(t.subjectId) === String(formSubjectId));
 
   const emptyForm = { subjectId: '', topicId: '', level: 'Basic', grade: '', overview: '', keyConcepts: '', practicalApplication: '', supportingLearning: '', videoUrl: '' };
@@ -1571,13 +1902,51 @@ const LearnDetailsTab = () => {
 
   const levelColor = l => l === 'Advanced' ? 'bg-red-100 text-red-600' : l === 'Intermediate' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
 
+  // Filter learn details based on search term
+  const filteredItems = items.filter(item =>
+    item.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.topicTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.level?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.grade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.overview?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen space-y-5">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-4">
+        {/* Search Field */}
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by subject, topic, level, or grade..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-4 focus:ring-[#00aa59]/10 transition bg-white"
+            />
+            <MdSchool className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <MdClose className="text-lg" />
+              </button>
+            )}
+          </div>
+        </div>
+        
         <button onClick={openAdd} className="flex items-center gap-2 bg-[#00aa59] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-[#008f4a] transition shadow-md">
           <MdAdd className="text-lg" /> Add Learn Detail
         </button>
       </div>
+
+      {/* Results count */}
+      {searchTerm && (
+        <div className="text-sm text-gray-600">
+          Found <span className="font-semibold text-[#00aa59]">{filteredItems.length}</span> learn detail{filteredItems.length !== 1 ? 's' : ''}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
@@ -1595,12 +1964,12 @@ const LearnDetailsTab = () => {
           <tbody>
             {loading ? (
               <tr><td colSpan={7} className="text-center py-16 text-gray-400">Loading…</td></tr>
-            ) : items.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <tr><td colSpan={7} className="text-center py-16 text-gray-400">
                 <MdInbox className="text-5xl text-gray-200 mx-auto mb-2" />
-                <p className="text-sm">No learn details yet</p>
+                <p className="text-sm">{searchTerm ? "No learn details found matching your search" : "No learn details yet"}</p>
               </td></tr>
-            ) : items.map((item, i) => (
+            ) : filteredItems.map((item, i) => (
               <tr key={item._id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 <td className="px-4 py-3 text-gray-400">{i + 1}</td>
                 <td className="px-4 py-3 font-semibold text-gray-800">{item.subjectName || '—'}</td>
@@ -1706,7 +2075,8 @@ const AdminLearningSubjects = () => {
     setLoading(true);
     try {
       const res = await api.subjects.getAll();
-      setSubjects(Array.isArray(res) ? res : (res.data || res || []));
+      const dataArray = Array.isArray(res) ? res : (res.data || res || []);
+      setSubjects(dataArray); // Keep original database order
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
@@ -1715,7 +2085,8 @@ const AdminLearningSubjects = () => {
     setRefreshing(true);
     try {
       const res = await api.subjects.getAll();
-      setSubjects(Array.isArray(res) ? res : (res.data || res || []));
+      const dataArray = Array.isArray(res) ? res : (res.data || res || []);
+      setSubjects(dataArray); // Keep original database order
     } catch (e) { console.error(e); }
     finally { setRefreshing(false); }
   };
