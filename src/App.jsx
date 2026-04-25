@@ -20,6 +20,7 @@ import AdminDidYouKnow from './components/HomeManagement/AdminDidYouKnow'
 import AdminTodaysRiddle from './components/HomeManagement/AdminTodaysRiddle'
 import AdminParentingInsight from './components/HomeManagement/AdminParentingInsight'
 import AdminPhaseCards from './components/HomeManagement/AdminPhaseCards'
+import FeaturedContentManagement from './components/HomeManagement/FeaturedContentManagement'
 import AdminFaqApp from './components/HelpSupport/AdminFaqApp'
 import AdminContactMessages from './components/HelpSupport/AdminContactMessages'
 import AdminSupportInfo from './components/HelpSupport/AdminSupportInfo'
@@ -62,6 +63,7 @@ function App() {
           <Route path="users" element={<AdminUsers />} />
 
           {/* Home Management */}
+          <Route path="featured-content" element={<FeaturedContentManagement />} />
           <Route path="did-you-know" element={<AdminDidYouKnow />} />
           <Route path="todays-riddle" element={<AdminTodaysRiddle />} />
           <Route path="parenting-insight" element={<AdminParentingInsight />} />

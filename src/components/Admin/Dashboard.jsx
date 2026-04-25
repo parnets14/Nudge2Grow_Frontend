@@ -52,6 +52,7 @@ const AdminDashboard = () => {
   ];
 
   const homeMgmtItems = [
+    { path: "/admin/featured-content",  label: "Featured Content",   icon: <MdStar /> },
     { path: "/admin/did-you-know",      label: "Did You Know",       icon: <MdLightbulb /> },
     { path: "/admin/todays-riddle",     label: "Today's Riddles",    icon: <MdPsychology /> },
     { path: "/admin/parenting-insight", label: "Parenting Insights", icon: <MdFavorite /> },
@@ -112,6 +113,7 @@ const AdminDashboard = () => {
     if (p.includes("beyond-school"))               return "Beyond School";
     if (p.includes("beyond-school"))               return "Beyond School";
     if (p.includes("users"))                        return "Users";
+    if (p.includes("featured-content"))            return "Featured Content";
     if (p.includes("did-you-know"))                return "Did You Know";
     if (p.includes("todays-riddle"))               return "Today's Riddles";
     if (p.includes("parenting-insight"))           return "Parenting Insights";
