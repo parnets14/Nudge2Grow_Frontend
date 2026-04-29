@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   MdAdd, MdEdit, MdDelete, MdInbox, MdMenuBook, MdLock, MdTrendingUp,
   MdClose, MdSave, MdExpandMore, MdExpandLess, MdPlayCircle, MdImage,
@@ -8,24 +8,24 @@ import {
 import { api } from "../../api";
 import { getImageUrl } from "../../utils/imageUrl";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// -- Constants -----------------------------------------------------------------
 const inp = "w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-4 focus:ring-[#00aa59]/10 transition bg-white";
 
 const SUBJECT_NAMES = [
-  { name: "Math", icon: "🔢" }, { name: "Science / EVS", icon: "🌿" },
-  { name: "English", icon: "📖" }, { name: "Social Studies", icon: "🌍" },
-  { name: "Artificial Intelligence", icon: "🧠" },
-  { name: "Financial Literacy", icon: "💰" }, { name: "Sex & Safety", icon: "❤️" },
+  { name: "Math", icon: "??" }, { name: "Science / EVS", icon: "??" },
+  { name: "English", icon: "??" }, { name: "Social Studies", icon: "??" },
+  { name: "Artificial Intelligence", icon: "??" },
+  { name: "Financial Literacy", icon: "??" }, { name: "Sex & Safety", icon: "??" },
 ];
 
 const SUBJECT_CONFIG = {
-  "Math": { icon: "🔢", color: "#3B82F6", bg: "#EFF6FF" },
-  "Science / EVS": { icon: "🌿", color: "#10B981", bg: "#ECFDF5" },
-  "English": { icon: "📖", color: "#F59E0B", bg: "#FFFBEB" },
-  "Social Studies": { icon: "🌍", color: "#EC4899", bg: "#FDF2F8" },
-  "Artificial Intelligence": { icon: "🧠", color: "#8B5CF6", bg: "#F5F3FF" },
-  "Financial Literacy": { icon: "💰", color: "#10B981", bg: "#ECFDF5" },
-  "Sex & Safety": { icon: "❤️", color: "#EF4444", bg: "#FEF2F2" },
+  "Math": { icon: "??", color: "#3B82F6", bg: "#EFF6FF" },
+  "Science / EVS": { icon: "??", color: "#10B981", bg: "#ECFDF5" },
+  "English": { icon: "??", color: "#F59E0B", bg: "#FFFBEB" },
+  "Social Studies": { icon: "??", color: "#EC4899", bg: "#FDF2F8" },
+  "Artificial Intelligence": { icon: "??", color: "#8B5CF6", bg: "#F5F3FF" },
+  "Financial Literacy": { icon: "??", color: "#10B981", bg: "#ECFDF5" },
+  "Sex & Safety": { icon: "??", color: "#EF4444", bg: "#FEF2F2" },
 };
 
 const TOPIC_TYPES = ["Activity", "Reading", "Video", "Quiz", "Game"];
@@ -49,7 +49,7 @@ const makeEmptyFlashcard = () => ({ id: "", title: "", concept: "", parentOutcom
 const makeEmptyQA        = () => ({ id: "", question: "", answer: "" });
 const makeEmptyPrompt    = () => ({ id: "", prompt: "", hint: "" });
 
-// ── Shared UI ─────────────────────────────────────────────────────────────────
+// -- Shared UI -----------------------------------------------------------------
 const CircularProgress = ({ percentage, color = "#10B981", size = 44 }) => {
   const stroke = 4, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
   const offset = circ - (percentage / 100) * circ;
@@ -74,9 +74,9 @@ const ProgressBar = ({ value, color = "#10B981" }) => (
   </div>
 );
 
-// ── Subject Card ──────────────────────────────────────────────────────────────
+// -- Subject Card --------------------------------------------------------------
 const SubjectCard = ({ s, onEdit, onDelete }) => {
-  const cfg = SUBJECT_CONFIG[s.name] || { icon: "📚", color: "#6B7280", bg: "#F9FAFB" };
+  const cfg = SUBJECT_CONFIG[s.name] || { icon: "??", color: "#6B7280", bg: "#F9FAFB" };
   const progress = s.progress || 0;
   const status = progress >= 80 ? "On Track" : progress >= 50 ? "In Progress" : s.status || "Started";
   return (
@@ -95,7 +95,7 @@ const SubjectCard = ({ s, onEdit, onDelete }) => {
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400 truncate">{s.description || "—"}</p>
+            <p className="text-xs text-gray-400 truncate">{s.description || "�"}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -114,13 +114,13 @@ const SubjectCard = ({ s, onEdit, onDelete }) => {
         <span className="flex items-center gap-1 text-xs text-gray-400"><MdMenuBook className="text-sm" /> {s.topics || 0} topics</span>
         {s.type === "premium"
           ? <span className="flex items-center gap-1 text-xs font-semibold bg-amber-50 text-amber-500 border border-amber-200 px-2.5 py-1 rounded-lg"><MdLock className="text-xs" /> Locked</span>
-          : <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${progress >= 80 ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"}`}>{status} ✓</span>}
+          : <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${progress >= 80 ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"}`}>{status} ?</span>}
       </div>
     </div>
   );
 };
 
-// ── Add/Edit Subject Modal (multi-step) ───────────────────────────────────────
+// -- Add/Edit Subject Modal (multi-step) ---------------------------------------
 const makeForm = (editing) => ({
   name:        editing?.name        || "",
   imageUrl:    editing?.imageUrl    || "",
@@ -132,7 +132,7 @@ const makeForm = (editing) => ({
   flashcards:  editing?.flashcards  || [],
   qaCards:     editing?.qaCards     || [],
   prompts:     editing?.prompts     || [],
-  greatJobTitle:   editing?.greatJobTitle   || "Great Job! 🎉",
+  greatJobTitle:   editing?.greatJobTitle   || "Great Job! ??",
   greatJobMessage: editing?.greatJobMessage || "You've completed this topic. Keep up the amazing work!",
 });
 
@@ -157,7 +157,7 @@ const StepInfo = ({ form, set }) => {
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-700 group-hover:text-[#00aa59] transition">{form.imageUrl ? "Change Image" : "Select Image"}</p>
-            <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, WEBP · max 5MB</p>
+            <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, WEBP � max 5MB</p>
           </div>
           <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
         </label>
@@ -166,7 +166,7 @@ const StepInfo = ({ form, set }) => {
       {/* Subject Name */}
       <div>
         <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Subject Name *</label>
-        <input className={inp} placeholder="e.g. Math, English…" value={form.name} onChange={e => set("name", e.target.value)} />
+        <input className={inp} placeholder="e.g. Math, English�" value={form.name} onChange={e => set("name", e.target.value)} />
         <div className="flex flex-wrap gap-2 mt-2">
           {SUBJECT_NAMES.map(s => (
             <button key={s.name} type="button" onClick={() => set("name", s.name)}
@@ -179,12 +179,12 @@ const StepInfo = ({ form, set }) => {
       {/* Title */}
       <div>
         <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Title</label>
-        <input className={inp} placeholder="e.g. Introduction to Math…" value={form.title} onChange={e => set("title", e.target.value)} />
+        <input className={inp} placeholder="e.g. Introduction to Math�" value={form.title} onChange={e => set("title", e.target.value)} />
       </div>
       {/* Description */}
       <div>
         <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Description</label>
-        <textarea className={`${inp} resize-none`} rows={3} placeholder="Short description…" value={form.description} onChange={e => set("description", e.target.value)} />
+        <textarea className={`${inp} resize-none`} rows={3} placeholder="Short description�" value={form.description} onChange={e => set("description", e.target.value)} />
       </div>
       {/* Grade */}
       <div>
@@ -231,15 +231,15 @@ const StepTopics = ({ form, setForm }) => {
             </button>
             {expanded === i && (
               <div className="px-4 py-4 space-y-3 bg-white">
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title</label><input className={inp} placeholder="Topic title…" value={t.title} onChange={e => setField(i, "title", e.target.value)} /></div>
+                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title</label><input className={inp} placeholder="Topic title�" value={t.title} onChange={e => setField(i, "title", e.target.value)} /></div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Type</label>
                   <div className="flex flex-wrap gap-2">{TOPIC_TYPES.map(tp => <button key={tp} type="button" onClick={() => setField(i, "type", tp)} className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition ${t.type === tp ? "bg-[#00aa59] text-white border-[#00aa59]" : "bg-gray-50 text-gray-500 border-gray-200 hover:border-[#00aa59] hover:text-[#00aa59]"}`}>{tp}</button>)}</div>
                 </div>
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Description</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Describe this topic…" value={t.description} onChange={e => setField(i, "description", e.target.value)} /></div>
+                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Description</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Describe this topic�" value={t.description} onChange={e => setField(i, "description", e.target.value)} /></div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Video URL (optional)</label>
-                  <div className="relative"><MdPlayCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 text-lg" /><input className={`${inp} pl-9`} placeholder="https://youtube.com/…" value={t.videoUrl} onChange={e => setField(i, "videoUrl", e.target.value)} /></div>
+                  <div className="relative"><MdPlayCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 text-lg" /><input className={`${inp} pl-9`} placeholder="https://youtube.com/�" value={t.videoUrl} onChange={e => setField(i, "videoUrl", e.target.value)} /></div>
                 </div>
               </div>
             )}
@@ -278,13 +278,13 @@ const StepFlashcards = ({ form, setForm }) => {
             </button>
             {expanded === i && (
               <div className="px-4 py-4 space-y-3 bg-white">
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title</label><input className={inp} value={fc.title} onChange={e => setField(i, "title", e.target.value)} placeholder="Card title…" /></div>
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Concept</label><textarea className={`${inp} resize-none`} rows={4} value={fc.concept} onChange={e => setField(i, "concept", e.target.value)} placeholder="Main concept…" /></div>
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Parent Outcome</label><textarea className={`${inp} resize-none`} rows={2} value={fc.parentOutcome} onChange={e => setField(i, "parentOutcome", e.target.value)} placeholder="What parent should do…" /></div>
+                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title</label><input className={inp} value={fc.title} onChange={e => setField(i, "title", e.target.value)} placeholder="Card title�" /></div>
+                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Concept</label><textarea className={`${inp} resize-none`} rows={4} value={fc.concept} onChange={e => setField(i, "concept", e.target.value)} placeholder="Main concept�" /></div>
+                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Parent Outcome</label><textarea className={`${inp} resize-none`} rows={2} value={fc.parentOutcome} onChange={e => setField(i, "parentOutcome", e.target.value)} placeholder="What parent should do�" /></div>
                 <div className="pt-2 border-t border-gray-100 space-y-3">
                   <p className="text-xs text-gray-400">Optional second section</p>
                   <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Section 2 Title</label><input className={inp} value={fc.section2Title} onChange={e => setField(i, "section2Title", e.target.value)} placeholder="e.g. Helpful Way to Explain" /></div>
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Section 2 Content</label><textarea className={`${inp} resize-none`} rows={2} value={fc.section2} onChange={e => setField(i, "section2", e.target.value)} placeholder="Additional explanation…" /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Section 2 Content</label><textarea className={`${inp} resize-none`} rows={2} value={fc.section2} onChange={e => setField(i, "section2", e.target.value)} placeholder="Additional explanation�" /></div>
                 </div>
               </div>
             )}
@@ -314,7 +314,7 @@ const StepQA = ({ form, setForm }) => {
             <button type="button" onClick={() => setExpanded(expanded === i ? null : i)} className="w-full flex items-center justify-between px-4 py-3 bg-teal-50 hover:bg-teal-100 transition">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="w-6 h-6 rounded-full bg-teal-500 text-white text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-                <span className="text-sm font-semibold text-gray-700 truncate">{qa.question || "Question…"}</span>
+                <span className="text-sm font-semibold text-gray-700 truncate">{qa.question || "Question�"}</span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button type="button" onClick={e => { e.stopPropagation(); remove(i); }} className="p-1 rounded-lg hover:bg-red-50 text-red-400"><MdDelete className="text-sm" /></button>
@@ -323,8 +323,8 @@ const StepQA = ({ form, setForm }) => {
             </button>
             {expanded === i && (
               <div className="px-4 py-4 space-y-3 bg-white">
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Question</label><textarea className={`${inp} resize-none`} rows={2} value={qa.question} onChange={e => setField(i, "question", e.target.value)} placeholder="Enter question…" /></div>
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Answer</label><textarea className={`${inp} resize-none`} rows={3} value={qa.answer} onChange={e => setField(i, "answer", e.target.value)} placeholder="Enter answer…" /></div>
+                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Question</label><textarea className={`${inp} resize-none`} rows={2} value={qa.question} onChange={e => setField(i, "question", e.target.value)} placeholder="Enter question�" /></div>
+                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Answer</label><textarea className={`${inp} resize-none`} rows={3} value={qa.answer} onChange={e => setField(i, "answer", e.target.value)} placeholder="Enter answer�" /></div>
               </div>
             )}
           </div>
@@ -353,7 +353,7 @@ const StepPrompts = ({ form, setForm }) => {
             <button type="button" onClick={() => setExpanded(expanded === i ? null : i)} className="w-full flex items-center justify-between px-4 py-3 bg-amber-50 hover:bg-amber-100 transition">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-                <span className="text-sm font-semibold text-gray-700 truncate">{pr.prompt || "Prompt…"}</span>
+                <span className="text-sm font-semibold text-gray-700 truncate">{pr.prompt || "Prompt�"}</span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button type="button" onClick={e => { e.stopPropagation(); remove(i); }} className="p-1 rounded-lg hover:bg-red-50 text-red-400"><MdDelete className="text-sm" /></button>
@@ -362,8 +362,8 @@ const StepPrompts = ({ form, setForm }) => {
             </button>
             {expanded === i && (
               <div className="px-4 py-4 space-y-3 bg-white">
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Prompt / Activity</label><textarea className={`${inp} resize-none`} rows={4} value={pr.prompt} onChange={e => setField(i, "prompt", e.target.value)} placeholder="Enter prompt or activity…" /></div>
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Hint</label><textarea className={`${inp} resize-none`} rows={2} value={pr.hint} onChange={e => setField(i, "hint", e.target.value)} placeholder="Hint for the parent…" /></div>
+                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Prompt / Activity</label><textarea className={`${inp} resize-none`} rows={4} value={pr.prompt} onChange={e => setField(i, "prompt", e.target.value)} placeholder="Enter prompt or activity�" /></div>
+                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Hint</label><textarea className={`${inp} resize-none`} rows={2} value={pr.hint} onChange={e => setField(i, "hint", e.target.value)} placeholder="Hint for the parent�" /></div>
               </div>
             )}
           </div>
@@ -377,16 +377,16 @@ const StepPrompts = ({ form, setForm }) => {
 const StepGreatJob = ({ form, set }) => (
   <div className="space-y-5">
     <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-6 text-center">
-      <div className="text-5xl mb-3">🎉</div>
+      <div className="text-5xl mb-3">??</div>
       <p className="text-lg font-extrabold text-gray-800">{form.greatJobTitle || "Great Job!"}</p>
       <p className="text-sm text-gray-500 mt-2 leading-relaxed">{form.greatJobMessage || "You've completed this topic!"}</p>
     </div>
-    <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Title</label><input className={inp} placeholder="Great Job! 🎉" value={form.greatJobTitle} onChange={e => set("greatJobTitle", e.target.value)} /></div>
+    <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Title</label><input className={inp} placeholder="Great Job! ??" value={form.greatJobTitle} onChange={e => set("greatJobTitle", e.target.value)} /></div>
     <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Message</label><textarea className={`${inp} resize-none`} rows={3} placeholder="You've completed this topic. Keep up the amazing work!" value={form.greatJobMessage} onChange={e => set("greatJobMessage", e.target.value)} /></div>
   </div>
 );
 
-// ── Add/Edit Modal — Subject Name + Image only ────────────────────────────────
+// -- Add/Edit Modal � Subject Name + Image only --------------------------------
 const AddSubjectModal = ({ editing, saving, onClose, onSave }) => {
   const [form, setForm] = useState(() => makeForm(editing));
   const [uploading, setUploading] = useState(false);
@@ -442,8 +442,8 @@ const AddSubjectModal = ({ editing, saving, onClose, onSave }) => {
                     : <MdImage className="text-2xl text-gray-300 group-hover:text-[#00aa59] transition" />}
               </div>
               <div>
-                <p className="text-sm font-semibold text-[#00aa59]">{uploading ? "Uploading…" : form.imageUrl ? "Change Image" : "Select Image"}</p>
-                <p className="text-xs text-gray-400">PNG, JPG, WEBP · max 5MB</p>
+                <p className="text-sm font-semibold text-[#00aa59]">{uploading ? "Uploading�" : form.imageUrl ? "Change Image" : "Select Image"}</p>
+                <p className="text-xs text-gray-400">PNG, JPG, WEBP � max 5MB</p>
               </div>
               <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
             </label>
@@ -457,13 +457,13 @@ const AddSubjectModal = ({ editing, saving, onClose, onSave }) => {
           {/* Subject Name */}
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Subject Name *</label>
-            <input className={inp} placeholder="e.g. Math, English…" value={form.name} onChange={e => set("name", e.target.value)} />
+            <input className={inp} placeholder="e.g. Math, English�" value={form.name} onChange={e => set("name", e.target.value)} />
           </div>
 
           {/* Description */}
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
-            <textarea className={`${inp} resize-none`} rows={2} placeholder="Short description…" value={form.description} onChange={e => set("description", e.target.value)} />
+            <textarea className={`${inp} resize-none`} rows={2} placeholder="Short description�" value={form.description} onChange={e => set("description", e.target.value)} />
           </div>
 
           {/* Premium Toggle */}
@@ -491,7 +491,7 @@ const AddSubjectModal = ({ editing, saving, onClose, onSave }) => {
           </button>
           <button disabled={!valid || saving || uploading} onClick={() => onSave(form)}
             className={`flex items-center gap-2 px-7 py-2.5 rounded-xl text-white text-sm font-bold transition shadow ${valid && !saving && !uploading ? "bg-[#00aa59] hover:bg-[#008f4a]" : "bg-gray-300 cursor-not-allowed"}`}>
-            <MdSave /> {saving ? "Saving…" : editing ? "Save Changes" : "Add Subject"}
+            <MdSave /> {saving ? "Saving�" : editing ? "Save Changes" : "Add Subject"}
           </button>
         </div>
       </div>
@@ -499,7 +499,7 @@ const AddSubjectModal = ({ editing, saving, onClose, onSave }) => {
   );
 };
 
-// ── Tab: Subjects list ────────────────────────────────────────────────────────
+// -- Tab: Subjects list --------------------------------------------------------
 const TabSubjects = ({ subjects, onEdit, onDelete, onAdd, refreshing }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -526,7 +526,7 @@ const TabSubjects = ({ subjects, onEdit, onDelete, onAdd, refreshing }) => {
   
   return (
     <div className="p-6 space-y-5 bg-gray-50 min-h-screen">
-      {refreshing && <div className="fixed top-4 right-4 z-50 bg-[#00aa59] text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg">Saving…</div>}
+      {refreshing && <div className="fixed top-4 right-4 z-50 bg-[#00aa59] text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg">Saving�</div>}
       
       <div className="flex items-center justify-between gap-4">
         {/* Search Field */}
@@ -598,7 +598,7 @@ const TabSubjects = ({ subjects, onEdit, onDelete, onAdd, refreshing }) => {
                     {s.type === 'premium' && <span className="flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full"><MdLock className="text-xs" /> Premium</span>}
                   </div>
                 </td>
-                <td className="px-5 py-3.5 text-gray-500 text-sm max-w-xs truncate">{s.description || '—'}</td>
+                <td className="px-5 py-3.5 text-gray-500 text-sm max-w-xs truncate">{s.description || '�'}</td>
                 <td className="px-5 py-3.5">
                   <div className="flex items-center justify-center gap-3">
                     <button onClick={() => onEdit(s)} title="Edit" className="text-blue-500 hover:text-blue-700 transition"><MdEdit className="text-xl" /></button>
@@ -654,11 +654,11 @@ const TabSubjects = ({ subjects, onEdit, onDelete, onAdd, refreshing }) => {
   );
 };
 
-// ── Tab: Topics / Flashcards / QA / Prompts / GreatJob (per-subject edit) ─────
+// -- Tab: Topics / Flashcards / QA / Prompts / GreatJob (per-subject edit) -----
 const SubjectGrid = ({ subjects, onSelect, emptyIcon, countFn, btnColor }) => (
   <div className="p-6 space-y-4 bg-gray-50 min-h-screen">
     {subjects.length === 0
-      ? <div className="flex flex-col items-center justify-center py-20 text-gray-400"><MdInbox className="text-5xl mb-3" /><p className="text-sm">No subjects yet — add one from the Subjects tab first.</p></div>
+      ? <div className="flex flex-col items-center justify-center py-20 text-gray-400"><MdInbox className="text-5xl mb-3" /><p className="text-sm">No subjects yet � add one from the Subjects tab first.</p></div>
       : <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {subjects.map(s => (
             <div key={s._id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-between hover:shadow-md transition">
@@ -686,7 +686,7 @@ const TopicsModal = ({ subject, onClose, onSaved }) => {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden" style={{ maxHeight: "90vh" }}>
         <div className="bg-[#00aa59] px-6 py-4 flex items-center justify-between shrink-0">
-          <div><h2 className="text-base font-extrabold text-white">Topics — {subject.name}</h2><p className="text-white/70 text-xs">{topics.length} topics</p></div>
+          <div><h2 className="text-base font-extrabold text-white">Topics � {subject.name}</h2><p className="text-white/70 text-xs">{topics.length} topics</p></div>
           <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center text-white"><MdClose /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-2">
@@ -699,10 +699,10 @@ const TopicsModal = ({ subject, onClose, onSaved }) => {
               </button>
               {expanded === i && (
                 <div className="px-4 py-4 space-y-3 bg-white">
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title</label><input className={inp} placeholder="Topic title…" value={t.title} onChange={e => setField(i, "title", e.target.value)} /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title</label><input className={inp} placeholder="Topic title�" value={t.title} onChange={e => setField(i, "title", e.target.value)} /></div>
                   <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Type</label><div className="flex flex-wrap gap-2">{TOPIC_TYPES.map(tp => <button key={tp} type="button" onClick={() => setField(i, "type", tp)} className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition ${t.type === tp ? "bg-[#00aa59] text-white border-[#00aa59]" : "bg-gray-50 text-gray-500 border-gray-200 hover:border-[#00aa59] hover:text-[#00aa59]"}`}>{tp}</button>)}</div></div>
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Description</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Describe this topic…" value={t.description} onChange={e => setField(i, "description", e.target.value)} /></div>
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Video URL (optional)</label><div className="relative"><MdPlayCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 text-lg" /><input className={`${inp} pl-9`} placeholder="https://youtube.com/…" value={t.videoUrl} onChange={e => setField(i, "videoUrl", e.target.value)} /></div></div>
+                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Description</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Describe this topic�" value={t.description} onChange={e => setField(i, "description", e.target.value)} /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Video URL (optional)</label><div className="relative"><MdPlayCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 text-lg" /><input className={`${inp} pl-9`} placeholder="https://youtube.com/�" value={t.videoUrl} onChange={e => setField(i, "videoUrl", e.target.value)} /></div></div>
                 </div>
               )}
             </div>
@@ -712,7 +712,7 @@ const TopicsModal = ({ subject, onClose, onSaved }) => {
           <button onClick={add} className="flex items-center gap-1.5 text-xs font-bold bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition"><MdAdd /> Add Topic</button>
           <div className="flex gap-2">
             <button onClick={onClose} className="px-4 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition">Cancel</button>
-            <button onClick={save} disabled={saving} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-[#00aa59] text-white text-sm font-bold hover:bg-[#008f4a] transition"><MdSave /> {saving ? "Saving…" : "Save"}</button>
+            <button onClick={save} disabled={saving} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-[#00aa59] text-white text-sm font-bold hover:bg-[#008f4a] transition"><MdSave /> {saving ? "Saving�" : "Save"}</button>
           </div>
         </div>
       </div>
@@ -732,7 +732,7 @@ const FlashcardsModal = ({ subject, onClose, onSaved }) => {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden" style={{ maxHeight: "90vh" }}>
         <div className="bg-indigo-600 px-6 py-4 flex items-center justify-between shrink-0">
-          <div><h2 className="text-base font-extrabold text-white">Flashcards — {subject.name}</h2><p className="text-white/70 text-xs">{cards.length} cards</p></div>
+          <div><h2 className="text-base font-extrabold text-white">Flashcards � {subject.name}</h2><p className="text-white/70 text-xs">{cards.length} cards</p></div>
           <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center text-white"><MdClose /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-2">
@@ -745,10 +745,10 @@ const FlashcardsModal = ({ subject, onClose, onSaved }) => {
               </button>
               {expanded === i && (
                 <div className="px-4 py-4 space-y-3 bg-white">
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title</label><input className={inp} value={fc.title} onChange={e => setField(i, "title", e.target.value)} placeholder="Card title…" /></div>
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Concept</label><textarea className={`${inp} resize-none`} rows={4} value={fc.concept} onChange={e => setField(i, "concept", e.target.value)} placeholder="Main concept…" /></div>
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Parent Outcome</label><textarea className={`${inp} resize-none`} rows={2} value={fc.parentOutcome} onChange={e => setField(i, "parentOutcome", e.target.value)} placeholder="What parent should do…" /></div>
-                  <div className="pt-2 border-t border-gray-100 space-y-3"><p className="text-xs text-gray-400">Optional second section</p><div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Section 2 Title</label><input className={inp} value={fc.section2Title} onChange={e => setField(i, "section2Title", e.target.value)} placeholder="e.g. Helpful Way to Explain" /></div><div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Section 2 Content</label><textarea className={`${inp} resize-none`} rows={2} value={fc.section2} onChange={e => setField(i, "section2", e.target.value)} placeholder="Additional explanation…" /></div></div>
+                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title</label><input className={inp} value={fc.title} onChange={e => setField(i, "title", e.target.value)} placeholder="Card title�" /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Concept</label><textarea className={`${inp} resize-none`} rows={4} value={fc.concept} onChange={e => setField(i, "concept", e.target.value)} placeholder="Main concept�" /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Parent Outcome</label><textarea className={`${inp} resize-none`} rows={2} value={fc.parentOutcome} onChange={e => setField(i, "parentOutcome", e.target.value)} placeholder="What parent should do�" /></div>
+                  <div className="pt-2 border-t border-gray-100 space-y-3"><p className="text-xs text-gray-400">Optional second section</p><div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Section 2 Title</label><input className={inp} value={fc.section2Title} onChange={e => setField(i, "section2Title", e.target.value)} placeholder="e.g. Helpful Way to Explain" /></div><div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Section 2 Content</label><textarea className={`${inp} resize-none`} rows={2} value={fc.section2} onChange={e => setField(i, "section2", e.target.value)} placeholder="Additional explanation�" /></div></div>
                 </div>
               )}
             </div>
@@ -756,7 +756,7 @@ const FlashcardsModal = ({ subject, onClose, onSaved }) => {
         </div>
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center shrink-0">
           <button onClick={add} className="flex items-center gap-1.5 text-xs font-bold bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-100 transition"><MdAdd /> Add Card</button>
-          <div className="flex gap-2"><button onClick={onClose} className="px-4 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition">Cancel</button><button onClick={save} disabled={saving} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition"><MdSave /> {saving ? "Saving…" : "Save"}</button></div>
+          <div className="flex gap-2"><button onClick={onClose} className="px-4 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition">Cancel</button><button onClick={save} disabled={saving} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition"><MdSave /> {saving ? "Saving�" : "Save"}</button></div>
         </div>
       </div>
     </div>
@@ -775,7 +775,7 @@ const QAModal = ({ subject, onClose, onSaved }) => {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden" style={{ maxHeight: "90vh" }}>
         <div className="bg-teal-600 px-6 py-4 flex items-center justify-between shrink-0">
-          <div><h2 className="text-base font-extrabold text-white">Q&A — {subject.name}</h2><p className="text-white/70 text-xs">{cards.length} cards</p></div>
+          <div><h2 className="text-base font-extrabold text-white">Q&A � {subject.name}</h2><p className="text-white/70 text-xs">{cards.length} cards</p></div>
           <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center text-white"><MdClose /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-2">
@@ -783,13 +783,13 @@ const QAModal = ({ subject, onClose, onSaved }) => {
           {cards.map((qa, i) => (
             <div key={i} className="border border-teal-100 rounded-xl overflow-hidden">
               <button type="button" onClick={() => setExpanded(expanded === i ? null : i)} className="w-full flex items-center justify-between px-4 py-3 bg-teal-50 hover:bg-teal-100 transition">
-                <div className="flex items-center gap-2 min-w-0"><span className="w-6 h-6 rounded-full bg-teal-500 text-white text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span><span className="text-sm font-semibold text-gray-700 truncate">{qa.question || "Question…"}</span></div>
+                <div className="flex items-center gap-2 min-w-0"><span className="w-6 h-6 rounded-full bg-teal-500 text-white text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span><span className="text-sm font-semibold text-gray-700 truncate">{qa.question || "Question�"}</span></div>
                 <div className="flex items-center gap-2 shrink-0"><button type="button" onClick={e => { e.stopPropagation(); remove(i); }} className="p-1 rounded-lg hover:bg-red-50 text-red-400"><MdDelete className="text-sm" /></button>{expanded === i ? <MdExpandLess className="text-teal-400" /> : <MdExpandMore className="text-teal-400" />}</div>
               </button>
               {expanded === i && (
                 <div className="px-4 py-4 space-y-3 bg-white">
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Question</label><textarea className={`${inp} resize-none`} rows={2} value={qa.question} onChange={e => setField(i, "question", e.target.value)} placeholder="Enter question…" /></div>
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Answer</label><textarea className={`${inp} resize-none`} rows={3} value={qa.answer} onChange={e => setField(i, "answer", e.target.value)} placeholder="Enter answer…" /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Question</label><textarea className={`${inp} resize-none`} rows={2} value={qa.question} onChange={e => setField(i, "question", e.target.value)} placeholder="Enter question�" /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Answer</label><textarea className={`${inp} resize-none`} rows={3} value={qa.answer} onChange={e => setField(i, "answer", e.target.value)} placeholder="Enter answer�" /></div>
                 </div>
               )}
             </div>
@@ -797,7 +797,7 @@ const QAModal = ({ subject, onClose, onSaved }) => {
         </div>
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center shrink-0">
           <button onClick={add} className="flex items-center gap-1.5 text-xs font-bold bg-teal-50 text-teal-600 px-4 py-2 rounded-lg hover:bg-teal-100 transition"><MdAdd /> Add Q&A</button>
-          <div className="flex gap-2"><button onClick={onClose} className="px-4 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition">Cancel</button><button onClick={save} disabled={saving} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-teal-600 text-white text-sm font-bold hover:bg-teal-700 transition"><MdSave /> {saving ? "Saving…" : "Save"}</button></div>
+          <div className="flex gap-2"><button onClick={onClose} className="px-4 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition">Cancel</button><button onClick={save} disabled={saving} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-teal-600 text-white text-sm font-bold hover:bg-teal-700 transition"><MdSave /> {saving ? "Saving�" : "Save"}</button></div>
         </div>
       </div>
     </div>
@@ -816,7 +816,7 @@ const PromptsModal = ({ subject, onClose, onSaved }) => {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden" style={{ maxHeight: "90vh" }}>
         <div className="bg-amber-500 px-6 py-4 flex items-center justify-between shrink-0">
-          <div><h2 className="text-base font-extrabold text-white">Prompts — {subject.name}</h2><p className="text-white/70 text-xs">{prompts.length} prompts</p></div>
+          <div><h2 className="text-base font-extrabold text-white">Prompts � {subject.name}</h2><p className="text-white/70 text-xs">{prompts.length} prompts</p></div>
           <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center text-white"><MdClose /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-2">
@@ -824,13 +824,13 @@ const PromptsModal = ({ subject, onClose, onSaved }) => {
           {prompts.map((pr, i) => (
             <div key={i} className="border border-amber-100 rounded-xl overflow-hidden">
               <button type="button" onClick={() => setExpanded(expanded === i ? null : i)} className="w-full flex items-center justify-between px-4 py-3 bg-amber-50 hover:bg-amber-100 transition">
-                <div className="flex items-center gap-2 min-w-0"><span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span><span className="text-sm font-semibold text-gray-700 truncate">{pr.prompt || "Prompt…"}</span></div>
+                <div className="flex items-center gap-2 min-w-0"><span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span><span className="text-sm font-semibold text-gray-700 truncate">{pr.prompt || "Prompt�"}</span></div>
                 <div className="flex items-center gap-2 shrink-0"><button type="button" onClick={e => { e.stopPropagation(); remove(i); }} className="p-1 rounded-lg hover:bg-red-50 text-red-400"><MdDelete className="text-sm" /></button>{expanded === i ? <MdExpandLess className="text-amber-400" /> : <MdExpandMore className="text-amber-400" />}</div>
               </button>
               {expanded === i && (
                 <div className="px-4 py-4 space-y-3 bg-white">
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Prompt / Activity</label><textarea className={`${inp} resize-none`} rows={4} value={pr.prompt} onChange={e => setField(i, "prompt", e.target.value)} placeholder="Enter prompt or activity…" /></div>
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Hint</label><textarea className={`${inp} resize-none`} rows={2} value={pr.hint} onChange={e => setField(i, "hint", e.target.value)} placeholder="Hint for the parent…" /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Prompt / Activity</label><textarea className={`${inp} resize-none`} rows={4} value={pr.prompt} onChange={e => setField(i, "prompt", e.target.value)} placeholder="Enter prompt or activity�" /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Hint</label><textarea className={`${inp} resize-none`} rows={2} value={pr.hint} onChange={e => setField(i, "hint", e.target.value)} placeholder="Hint for the parent�" /></div>
                 </div>
               )}
             </div>
@@ -838,7 +838,7 @@ const PromptsModal = ({ subject, onClose, onSaved }) => {
         </div>
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center shrink-0">
           <button onClick={add} className="flex items-center gap-1.5 text-xs font-bold bg-amber-50 text-amber-600 px-4 py-2 rounded-lg hover:bg-amber-100 transition"><MdAdd /> Add Prompt</button>
-          <div className="flex gap-2"><button onClick={onClose} className="px-4 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition">Cancel</button><button onClick={save} disabled={saving} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition"><MdSave /> {saving ? "Saving…" : "Save"}</button></div>
+          <div className="flex gap-2"><button onClick={onClose} className="px-4 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition">Cancel</button><button onClick={save} disabled={saving} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition"><MdSave /> {saving ? "Saving�" : "Save"}</button></div>
         </div>
       </div>
     </div>
@@ -846,7 +846,7 @@ const PromptsModal = ({ subject, onClose, onSaved }) => {
 };
 
 const GreatJobModal = ({ subject, onClose, onSaved }) => {
-  const [title, setTitle]     = useState(subject.greatJobTitle   || "Great Job! 🎉");
+  const [title, setTitle]     = useState(subject.greatJobTitle   || "Great Job! ??");
   const [message, setMessage] = useState(subject.greatJobMessage || "You've completed this topic. Keep up the amazing work!");
   const [saving, setSaving]   = useState(false);
   const save = async () => { setSaving(true); try { await api.subjects.update(subject._id, { greatJobTitle: title, greatJobMessage: message }); onSaved(); } catch (e) { alert("Save failed"); } finally { setSaving(false); } };
@@ -854,28 +854,28 @@ const GreatJobModal = ({ subject, onClose, onSaved }) => {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
         <div className="bg-[#00aa59] px-6 py-4 flex items-center justify-between shrink-0">
-          <div><h2 className="text-base font-extrabold text-white">Great Job Screen — {subject.name}</h2><p className="text-white/70 text-xs">Shown after all cards are completed</p></div>
+          <div><h2 className="text-base font-extrabold text-white">Great Job Screen � {subject.name}</h2><p className="text-white/70 text-xs">Shown after all cards are completed</p></div>
           <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center text-white"><MdClose /></button>
         </div>
         <div className="px-6 py-5 space-y-5">
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-5 text-center">
-            <div className="text-4xl mb-2">🎉</div>
+            <div className="text-4xl mb-2">??</div>
             <p className="text-base font-extrabold text-gray-800">{title || "Great Job!"}</p>
             <p className="text-sm text-gray-500 mt-1 leading-relaxed">{message || "You've completed this topic!"}</p>
           </div>
-          <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Title</label><input className={inp} value={title} onChange={e => setTitle(e.target.value)} placeholder="Great Job! 🎉" /></div>
-          <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Message</label><textarea className={`${inp} resize-none`} rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="You've completed this topic…" /></div>
+          <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Title</label><input className={inp} value={title} onChange={e => setTitle(e.target.value)} placeholder="Great Job! ??" /></div>
+          <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Message</label><textarea className={`${inp} resize-none`} rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="You've completed this topic�" /></div>
         </div>
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 shrink-0">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition">Cancel</button>
-          <button onClick={save} disabled={saving} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-[#00aa59] text-white text-sm font-bold hover:bg-[#008f4a] transition"><MdSave /> {saving ? "Saving…" : "Save"}</button>
+          <button onClick={save} disabled={saving} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-[#00aa59] text-white text-sm font-bold hover:bg-[#008f4a] transition"><MdSave /> {saving ? "Saving�" : "Save"}</button>
         </div>
       </div>
     </div>
   );
 };
 
-// ── Add/Edit Topic Modal ──────────────────────────────────────────────────────
+// -- Add/Edit Topic Modal ------------------------------------------------------
 const TopicFormModal = ({ editing, subjects, saving, onClose, onSave }) => {
   // Format date for input field (YYYY-MM-DD)
   const formatDateForInput = (dateString) => {
@@ -900,7 +900,7 @@ const TopicFormModal = ({ editing, subjects, saving, onClose, onSave }) => {
   const [uploading, setUploading] = useState(false);
   const [grades, setGrades] = useState([]);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const valid = form.subjectId && form.topic.trim();
+  const valid = form.subjectId && form.topic.trim() && form.scheduledDate;
 
   useEffect(() => {
     api.grades.getAll()
@@ -979,8 +979,8 @@ const TopicFormModal = ({ editing, subjects, saving, onClose, onSave }) => {
                     : <MdImage className="text-3xl text-gray-300 group-hover:text-[#00aa59] transition" />}
               </div>
               <div>
-                <p className="text-sm font-semibold text-[#00aa59]">{uploading ? 'Uploading…' : form.imageUrl ? 'Change Image' : 'Select Image'}</p>
-                <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, WEBP · max 5MB</p>
+                <p className="text-sm font-semibold text-[#00aa59]">{uploading ? 'Uploading�' : form.imageUrl ? 'Change Image' : 'Select Image'}</p>
+                <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, WEBP � max 5MB</p>
               </div>
               <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
             </label>
@@ -992,26 +992,27 @@ const TopicFormModal = ({ editing, subjects, saving, onClose, onSave }) => {
           {/* Topic */}
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Topic *</label>
-            <input className={inp} placeholder="e.g. Addition, Photosynthesis…" value={form.topic} onChange={e => set('topic', e.target.value)} />
+            <input className={inp} placeholder="e.g. Addition, Photosynthesis�" value={form.topic} onChange={e => set('topic', e.target.value)} />
           </div>
 
           {/* Title */}
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Title</label>
-            <input className={inp} placeholder="e.g. Understanding Addition Basics…" value={form.title} onChange={e => set('title', e.target.value)} />
+            <input className={inp} placeholder="e.g. Understanding Addition Basics�" value={form.title} onChange={e => set('title', e.target.value)} />
           </div>
 
           {/* Description */}
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Description</label>
-            <textarea className={`${inp} resize-none`} rows={3} placeholder="Short description…" value={form.description} onChange={e => set('description', e.target.value)} />
+            <textarea className={`${inp} resize-none`} rows={3} placeholder="Short description�" value={form.description} onChange={e => set('description', e.target.value)} />
           </div>
 
           {/* Scheduled Date */}
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Scheduled Date</label>
+            <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Scheduled Date <span className="text-red-500">*</span></label>
             <input 
               type="date" 
+              required
               className={inp} 
               value={form.scheduledDate} 
               onChange={e => set('scheduledDate', e.target.value)} 
@@ -1024,7 +1025,7 @@ const TopicFormModal = ({ editing, subjects, saving, onClose, onSave }) => {
           <button onClick={onClose} className="px-5 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition">Cancel</button>
           <button disabled={!valid || saving || uploading} onClick={() => onSave(form)}
             className={`flex items-center gap-2 px-7 py-2.5 rounded-xl text-white text-sm font-bold transition shadow ${valid && !saving && !uploading ? 'bg-[#00aa59] hover:bg-[#008f4a]' : 'bg-gray-300 cursor-not-allowed'}`}>
-            <MdSave /> {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Topic'}
+            <MdSave /> {saving ? 'Saving�' : editing ? 'Save Changes' : 'Add Topic'}
           </button>
         </div>
       </div>
@@ -1032,7 +1033,7 @@ const TopicFormModal = ({ editing, subjects, saving, onClose, onSave }) => {
   );
 };
 
-// ── Tab: Topics ───────────────────────────────────────────────────────────────
+// -- Tab: Topics ---------------------------------------------------------------
 const TabTopics = ({ subjects }) => {
   const [topics, setTopics]       = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -1042,6 +1043,10 @@ const TabTopics = ({ subjects }) => {
   const [saving, setSaving]       = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [filterGrade, setFilterGrade]     = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [filterLevel, setFilterLevel]     = useState('');
+  const [grades, setGrades] = useState([]);
   const itemsPerPage = 15;
 
   const load = async () => {
@@ -1054,7 +1059,9 @@ const TabTopics = ({ subjects }) => {
   };
 
   useEffect(() => { load(); }, []);
-
+  useEffect(() => {
+    api.grades.getAll().then(d => setGrades(Array.isArray(d) ? d : [])).catch(() => {});
+  }, []);
   const handleSave = async (form) => {
     setSaving(true);
     try {
@@ -1081,25 +1088,33 @@ const TabTopics = ({ subjects }) => {
     return 'bg-green-100 text-green-700';
   };
 
-  // Filter topics based on search term
-  const filteredTopics = topics.filter(t =>
-    t.topic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.level?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.grade?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Unique values for filter dropdowns � subjects from API, others from data
+  const uniqueLevels   = ['Basic', 'Intermediate', 'Advanced'];
 
-  // Pagination logic
+  // Filter topics based on search + dropdowns
+  const filteredTopics = topics.filter(t => {
+    const matchSearch =
+      t.topic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.level?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.grade?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchGrade   = !filterGrade   || t.grade === filterGrade;
+    const matchSubject = !filterSubject || t.subjectName === filterSubject;
+    const matchLevel   = !filterLevel   || t.level === filterLevel;
+    return matchSearch && matchGrade && matchSubject && matchLevel;
+  });
+
   const totalPages = Math.ceil(filteredTopics.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedTopics = filteredTopics.slice(startIndex, endIndex);
 
-  // Reset to page 1 when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+  const hasFilters = filterGrade || filterSubject || filterLevel;
+
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterGrade, filterSubject, filterLevel]);
+
+  const selCls = "border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-2 focus:ring-[#00aa59]/10 bg-white text-gray-700 cursor-pointer";
 
   return (
     <div className="p-6 space-y-5 bg-gray-50 min-h-screen">
@@ -1116,29 +1131,42 @@ const TabTopics = ({ subjects }) => {
             />
             <MdBook className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
             {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
+              <button onClick={() => setSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                 <MdClose className="text-lg" />
               </button>
             )}
           </div>
         </div>
-        
         <button onClick={() => { setEditing(null); setShowModal(true); }}
           className="flex items-center gap-2 bg-[#00aa59] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-[#008f4a] transition shadow-md">
           <MdAdd className="text-lg" /> Add Topic
         </button>
       </div>
 
-      {/* Results count */}
-      {searchTerm && (
-        <div className="text-sm text-gray-600">
-          Found <span className="font-semibold text-[#00aa59]">{filteredTopics.length}</span> topic{filteredTopics.length !== 1 ? 's' : ''}
-          {filteredTopics.length > itemsPerPage && ` (showing ${startIndex + 1}-${Math.min(endIndex, filteredTopics.length)})`}
-        </div>
-      )}
+      {/* Filter Dropdowns */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} className={selCls}>
+          <option value="">All Grades</option>
+          {grades.map(g => <option key={g._id} value={g.title}>{g.title}</option>)}
+        </select>
+        <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)} className={selCls}>
+          <option value="">All Subjects</option>
+          {subjects.map(s => <option key={s._id} value={s.name}>{s.name}</option>)}
+        </select>
+        <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} className={selCls}>
+          <option value="">All Levels</option>
+          {uniqueLevels.map(l => <option key={l} value={l}>{l}</option>)}
+        </select>
+        {hasFilters && (
+          <button onClick={() => { setFilterGrade(''); setFilterSubject(''); setFilterLevel(''); }}
+            className="flex items-center gap-1 px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm text-gray-500 hover:bg-gray-100 transition">
+            <MdClose className="text-base" /> Clear Filters
+          </button>
+        )}
+        <span className="text-sm text-gray-500 ml-auto">
+          <span className="font-semibold text-[#00aa59]">{filteredTopics.length}</span> topic{filteredTopics.length !== 1 ? 's' : ''}
+        </span>
+      </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
@@ -1157,7 +1185,7 @@ const TabTopics = ({ subjects }) => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={9} className="text-center py-16 text-gray-400">Loading…</td></tr>
+              <tr><td colSpan={9} className="text-center py-16 text-gray-400">Loading�</td></tr>
             ) : filteredTopics.length === 0 ? (
               <tr><td colSpan={9} className="text-center py-16 text-gray-400">
                 <MdInbox className="text-5xl text-gray-200 mx-auto mb-2" />
@@ -1172,14 +1200,14 @@ const TabTopics = ({ subjects }) => {
                     : <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><MdImage className="text-xl" /></div>}
                 </td>
                 <td className="px-5 py-3.5 font-semibold text-gray-800">{t.topic || t.title}</td>
-                <td className="px-5 py-3.5 text-gray-600">{t.title || '—'}</td>
-                <td className="px-5 py-3.5 text-gray-600">{t.subjectName || '—'}</td>
+                <td className="px-5 py-3.5 text-gray-600">{t.title || '�'}</td>
+                <td className="px-5 py-3.5 text-gray-600">{t.subjectName || '�'}</td>
                 <td className="px-5 py-3.5">
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${levelColor(t.level)}`}>{t.level}</span>
                 </td>
-                <td className="px-5 py-3.5 text-gray-600">{t.grade || '—'}</td>
+                <td className="px-5 py-3.5 text-gray-600">{t.grade || '�'}</td>
                 <td className="px-5 py-3.5 text-gray-600">
-                  {t.scheduledDate ? new Date(t.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                  {t.scheduledDate ? new Date(t.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '�'}
                 </td>
                 <td className="px-5 py-3.5">
                   <div className="flex items-center justify-center gap-3">
@@ -1257,14 +1285,14 @@ const TabTopics = ({ subjects }) => {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Topic</p><p className="text-sm font-semibold text-gray-800">{viewing.topic || viewing.title}</p></div>
-                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Title</p><p className="text-sm text-gray-700">{viewing.title || '—'}</p></div>
-                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Subject</p><p className="text-sm text-gray-700">{viewing.subjectName || '—'}</p></div>
+                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Title</p><p className="text-sm text-gray-700">{viewing.title || '�'}</p></div>
+                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Subject</p><p className="text-sm text-gray-700">{viewing.subjectName || '�'}</p></div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Level</p>
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${viewing.level === 'Advanced' ? 'bg-red-100 text-red-600' : viewing.level === 'Intermediate' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{viewing.level}</span>
                 </div>
-                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Grade</p><p className="text-sm text-gray-700">{viewing.grade || '—'}</p></div>
+                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Grade</p><p className="text-sm text-gray-700">{viewing.grade || '�'}</p></div>
                 {viewing.scheduledDate && (
-                  <div className="col-span-2"><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Scheduled Date</p><p className="text-sm text-gray-700">📅 {new Date(viewing.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p></div>
+                  <div className="col-span-2"><p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Scheduled Date</p><p className="text-sm text-gray-700">?? {new Date(viewing.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p></div>
                 )}
               </div>
               {viewing.description && (
@@ -1282,7 +1310,7 @@ const TabTopics = ({ subjects }) => {
   );
 };
 
-// ── Reusable: Subject+Topic+Level+Grade selectors ────────────────────────────
+// -- Reusable: Subject+Topic+Level+Grade selectors ----------------------------
 const useDropdowns = () => {
   const [subjects, setSubjects] = useState([]);
   const [topics,   setTopics]   = useState([]);
@@ -1295,7 +1323,7 @@ const useDropdowns = () => {
   return { subjects, topics, grades };
 };
 
-// ── Generic content tab (Flashcards / Q&A / Prompts) ─────────────────────────
+// -- Generic content tab (Flashcards / Q&A / Prompts) -------------------------
 const ContentTab = ({ apiKey, columns, renderForm, emptyLabel }) => {
   const { subjects, topics, grades } = useDropdowns();
   const [items, setItems]       = useState([]);
@@ -1305,17 +1333,35 @@ const ContentTab = ({ apiKey, columns, renderForm, emptyLabel }) => {
   const [viewing, setViewing]   = useState(null);
   const [saving, setSaving]     = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [filterGrade, setFilterGrade]     = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [filterLevel, setFilterLevel]     = useState('');
   const itemsPerPage = 15;
 
-  // Filter topics by selected subject in form
   const [formSubjectId, setFormSubjectId] = useState('');
   const filteredTopics = topics.filter(t => !formSubjectId || String(t.subjectId) === String(formSubjectId));
 
-  // Pagination logic
-  const totalPages = Math.ceil(items.length / itemsPerPage);
+  // Unique values for filter dropdowns � subjects from API, others from data
+  const uniqueGrades   = [...new Set(items.map(t => t.grade).filter(Boolean))].sort();
+  const uniqueLevels   = ['Basic', 'Intermediate', 'Advanced'];
+
+  // Filter items by dropdowns
+  const filteredItems = items.filter(t => {
+    const matchGrade   = !filterGrade   || t.grade === filterGrade;
+    const matchSubject = !filterSubject || t.subjectName === filterSubject;
+    const matchLevel   = !filterLevel   || t.level === filterLevel;
+    return matchGrade && matchSubject && matchLevel;
+  });
+
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedItems = items.slice(startIndex, endIndex);
+  const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
+  const hasFilters = filterGrade || filterSubject || filterLevel;
+  const selCls = "border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-2 focus:ring-[#00aa59]/10 bg-white text-gray-700 cursor-pointer";
+
+  useEffect(() => { setCurrentPage(1); }, [filterGrade, filterSubject, filterLevel]);
 
   const load = async () => {
     setLoading(true);
@@ -1356,6 +1402,31 @@ const ContentTab = ({ apiKey, columns, renderForm, emptyLabel }) => {
         </button>
       </div>
 
+      {/* Filter Dropdowns */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} className={selCls}>
+          <option value="">All Grades</option>
+          {grades.map(g => <option key={g._id} value={g.title}>{g.title}</option>)}
+        </select>
+        <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)} className={selCls}>
+          <option value="">All Subjects</option>
+          {subjects.map(s => <option key={s._id} value={s.name}>{s.name}</option>)}
+        </select>
+        <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} className={selCls}>
+          <option value="">All Levels</option>
+          {uniqueLevels.map(l => <option key={l} value={l}>{l}</option>)}
+        </select>
+        {hasFilters && (
+          <button onClick={() => { setFilterGrade(''); setFilterSubject(''); setFilterLevel(''); }}
+            className="flex items-center gap-1 px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm text-gray-500 hover:bg-gray-100 transition">
+            <MdClose className="text-base" /> Clear Filters
+          </button>
+        )}
+        <span className="text-sm text-gray-500 ml-auto">
+          <span className="font-semibold text-[#00aa59]">{filteredItems.length}</span> item{filteredItems.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -1371,20 +1442,20 @@ const ContentTab = ({ apiKey, columns, renderForm, emptyLabel }) => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6 + columns.length} className="text-center py-16 text-gray-400">Loading…</td></tr>
-            ) : items.length === 0 ? (
+              <tr><td colSpan={6 + columns.length} className="text-center py-16 text-gray-400">Loading�</td></tr>
+            ) : filteredItems.length === 0 ? (
               <tr><td colSpan={6 + columns.length} className="text-center py-16 text-gray-400">
                 <MdInbox className="text-5xl text-gray-200 mx-auto mb-2" />
-                <p className="text-sm">No {emptyLabel.toLowerCase()}s yet</p>
+                <p className="text-sm">{hasFilters ? 'No items match the selected filters' : `No ${emptyLabel.toLowerCase()}s yet`}</p>
               </td></tr>
             ) : paginatedItems.map((item, i) => (
               <tr key={item._id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 <td className="px-4 py-3 text-gray-400">{startIndex + i + 1}</td>
-                <td className="px-4 py-3 text-gray-700">{item.subjectName || '—'}</td>
-                <td className="px-4 py-3 text-gray-700">{item.topicTitle || '—'}</td>
+                <td className="px-4 py-3 text-gray-700">{item.subjectName || '�'}</td>
+                <td className="px-4 py-3 text-gray-700">{item.topicTitle || '�'}</td>
                 <td className="px-4 py-3"><span className={`text-xs font-bold px-2.5 py-1 rounded-full ${levelColor(item.level)}`}>{item.level}</span></td>
-                <td className="px-4 py-3 text-gray-600">{item.grade || '—'}</td>
-                {columns.map(c => <td key={c.key} className="px-4 py-3 text-gray-700 max-w-xs truncate">{item[c.key] || '—'}</td>)}
+                <td className="px-4 py-3 text-gray-600">{item.grade || '�'}</td>
+                {columns.map(c => <td key={c.key} className="px-4 py-3 text-gray-700 max-w-xs truncate">{item[c.key] || '�'}</td>)}
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-2">
                     <button onClick={() => setViewing(item)} title="View" className="text-[#00aa59] hover:text-[#008f4a]"><MdVisibility className="text-xl" /></button>
@@ -1399,39 +1470,26 @@ const ContentTab = ({ apiKey, columns, renderForm, emptyLabel }) => {
       </div>
 
       {/* Pagination */}
-      {items.length > itemsPerPage && (
+      {filteredItems.length > itemsPerPage && (
         <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200">
           <div className="text-sm text-gray-600">
-            Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, items.length)}</span> of <span className="font-semibold">{items.length}</span> items
+            Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredItems.length)}</span> of <span className="font-semibold">{filteredItems.length}</span> items
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed">
               <MdArrowBack /> Previous
             </button>
             <div className="flex items-center gap-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-10 h-10 rounded-lg text-sm font-bold transition ${
-                    currentPage === page
-                      ? 'bg-[#00aa59] text-white'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
+                <button key={page} onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg text-sm font-bold transition ${currentPage === page ? 'bg-[#00aa59] text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
                   {page}
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed">
               Next <MdArrowForward />
             </button>
           </div>
@@ -1456,10 +1514,10 @@ const ContentTab = ({ apiKey, columns, renderForm, emptyLabel }) => {
             </div>
             <div className="px-7 py-6 space-y-3">
               <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Subject</p><p className="text-sm text-gray-800">{viewing.subjectName || '—'}</p></div>
-                <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Topic</p><p className="text-sm text-gray-800">{viewing.topicTitle || '—'}</p></div>
+                <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Subject</p><p className="text-sm text-gray-800">{viewing.subjectName || '�'}</p></div>
+                <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Topic</p><p className="text-sm text-gray-800">{viewing.topicTitle || '�'}</p></div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Level</p><span className={`text-xs font-bold px-2.5 py-1 rounded-full ${levelColor(viewing.level)}`}>{viewing.level}</span></div>
-                <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Grade</p><p className="text-sm text-gray-800">{viewing.grade || '—'}</p></div>
+                <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Grade</p><p className="text-sm text-gray-800">{viewing.grade || '�'}</p></div>
               </div>
               {columns.map(c => viewing[c.key] && (
                 <div key={c.key}><p className="text-xs font-bold text-gray-400 uppercase mb-1">{c.label}</p><p className="text-sm text-gray-700 leading-relaxed">{viewing[c.key]}</p></div>
@@ -1476,9 +1534,16 @@ const ContentTab = ({ apiKey, columns, renderForm, emptyLabel }) => {
   );
 };
 
-// ── Shared form fields (Subject, Topic, Level, Grade) ─────────────────────────
-const SharedFields = ({ form, set, subjects, grades, filteredTopics, formSubjectId, setFormSubjectId }) => (
+// -- Shared form fields (Subject, Topic, Level, Grade) -------------------------
+const SharedFields = ({ form, set, subjects, grades, filteredTopics, formSubjectId, setFormSubjectId, formGrade, setFormGrade, formLevel, setFormLevel }) => (
   <>
+    <div>
+      <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Grade</label>
+      <select className={inp} value={form.grade} onChange={e => { set('grade', e.target.value); setFormGrade(e.target.value); set('topicId', ''); }}>
+        <option value="">Select Grade</option>
+        {grades.map(g => <option key={g._id} value={g.title}>{g.title}</option>)}
+      </select>
+    </div>
     <div>
       <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Subject Name *</label>
       <select className={inp} value={form.subjectId} onChange={e => { set('subjectId', e.target.value); setFormSubjectId(e.target.value); set('topicId', ''); }}>
@@ -1487,32 +1552,30 @@ const SharedFields = ({ form, set, subjects, grades, filteredTopics, formSubject
       </select>
     </div>
     <div>
-      <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Topic *</label>
-      <select className={inp} value={form.topicId} onChange={e => set('topicId', e.target.value)}>
-        <option value="">Select Topic</option>
-        {filteredTopics.map(t => <option key={t._id} value={t._id}>{t.title}</option>)}
-      </select>
-    </div>
-    <div>
       <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Level *</label>
-      <select className={inp} value={form.level} onChange={e => set('level', e.target.value)}>
+      <select className={inp} value={form.level} onChange={e => { set('level', e.target.value); setFormLevel(e.target.value); set('topicId', ''); }}>
         <option value="Basic">Basic</option>
         <option value="Intermediate">Intermediate</option>
         <option value="Advanced">Advanced</option>
       </select>
     </div>
     <div>
-      <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Grade</label>
-      <select className={inp} value={form.grade} onChange={e => set('grade', e.target.value)}>
-        <option value="">Select Grade</option>
-        {grades.map(g => <option key={g._id} value={g.title}>{g.title}</option>)}
+      <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Topic *</label>
+      <select className={inp} value={form.topicId} onChange={e => set('topicId', e.target.value)} disabled={!form.subjectId || filteredTopics.length === 0}>
+        <option value="">Select Topic</option>
+        {filteredTopics.map(t => <option key={t._id} value={t._id}>{t.title}</option>)}
       </select>
+      {form.subjectId && filteredTopics.length === 0 && (
+        <p className="mt-1.5 text-xs text-amber-600 flex items-center gap-1">
+          ⚠️ No topics found for the selected Grade, Subject &amp; Level combination.
+        </p>
+      )}
     </div>
   </>
 );
 
-// ── Flashcard Form ────────────────────────────────────────────────────────────
-// ── Combined Flashcards + Q&A + Prompts Tab ───────────────────────────────────
+// -- Flashcard Form ------------------------------------------------------------
+// -- Combined Flashcards + Q&A + Prompts Tab -----------------------------------
 const FlashcardsQAPromptsTab = () => {
   const { subjects: subjectList, topics, grades } = useDropdowns();
   const [sets, setSets]         = useState([]);
@@ -1522,8 +1585,18 @@ const FlashcardsQAPromptsTab = () => {
   const [editing, setEditing]   = useState(null);
   const [viewing, setViewing]   = useState(null);
   const [formSubjectId, setFormSubjectId] = useState('');
+  const [formGrade, setFormGrade]         = useState('');
+  const [formLevel, setFormLevel]         = useState('Basic');
   const [searchTerm, setSearchTerm] = useState("");
-  const filteredTopics = topics.filter(t => !formSubjectId || String(t.subjectId) === String(formSubjectId));
+  const [filterGrade, setFilterGrade]     = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [filterLevel, setFilterLevel]     = useState('');
+  const filteredTopics = topics.filter(t => {
+    const matchSubject = !formSubjectId || String(t.subjectId) === String(formSubjectId);
+    const matchGrade   = !formGrade   || t.grade === formGrade;
+    const matchLevel   = !formLevel   || t.level === formLevel;
+    return matchSubject && matchGrade && matchLevel;
+  });
 
   const [form, setForm]         = useState({ subjectId: '', topicId: '', level: 'Basic', grade: '' });
   const [fcCards, setFcCards]   = useState([{ title: '', description: '', subtitle: '', subdescription: '' }]);
@@ -1545,6 +1618,8 @@ const FlashcardsQAPromptsTab = () => {
     setQaList([{ question: '', answer: '' }]);
     setPromptList([{ prompt: '', hint: '' }]);
     setFormSubjectId('');
+    setFormGrade('');
+    setFormLevel('Basic');
     setEditing(null);
   };
 
@@ -1552,6 +1627,8 @@ const FlashcardsQAPromptsTab = () => {
     setEditing(s);
     setForm({ subjectId: s.subjectId, topicId: s.topicId, level: s.level, grade: s.grade || '' });
     setFormSubjectId(s.subjectId);
+    setFormGrade(s.grade || '');
+    setFormLevel(s.level || 'Basic');
     setFcCards(s.flashcards?.length ? s.flashcards : [{ title: '', description: '', subtitle: '', subdescription: '' }]);
     setQaList(s.qaCards?.length ? s.qaCards : [{ question: '', answer: '' }]);
     setPromptList(s.prompts?.length ? s.prompts : [{ prompt: '', hint: '' }]);
@@ -1582,13 +1659,25 @@ const FlashcardsQAPromptsTab = () => {
 
   const levelColor = l => l === 'Advanced' ? 'bg-red-100 text-red-600' : l === 'Intermediate' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
 
-  // Filter content sets based on search term
-  const filteredSets = sets.filter(s =>
-    s.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.topicTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.level?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.grade?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const uniqueLevels = ['Basic', 'Intermediate', 'Advanced'];
+
+  // Filter content sets based on search + dropdowns
+  const filteredSets = sets.filter(s => {
+    const matchSearch =
+      s.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.topicTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.level?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.grade?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchGrade   = !filterGrade   || s.grade === filterGrade;
+    const matchSubject = !filterSubject || s.subjectName === filterSubject;
+    const matchLevel   = !filterLevel   || s.level === filterLevel;
+    return matchSearch && matchGrade && matchSubject && matchLevel;
+  });
+
+  const hasFilters = filterGrade || filterSubject || filterLevel;
+  const selCls = "border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-2 focus:ring-[#00aa59]/10 bg-white text-gray-700 cursor-pointer";
+
+  useEffect(() => {}, [searchTerm, filterGrade, filterSubject, filterLevel]);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen space-y-5">
@@ -1621,12 +1710,30 @@ const FlashcardsQAPromptsTab = () => {
         </button>
       </div>
 
-      {/* Results count */}
-      {searchTerm && (
-        <div className="text-sm text-gray-600">
-          Found <span className="font-semibold text-[#00aa59]">{filteredSets.length}</span> content set{filteredSets.length !== 1 ? 's' : ''}
-        </div>
-      )}
+      {/* Filter Dropdowns */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} className={selCls}>
+          <option value="">All Grades</option>
+          {grades.map(g => <option key={g._id} value={g.title}>{g.title}</option>)}
+        </select>
+        <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)} className={selCls}>
+          <option value="">All Subjects</option>
+          {subjectList.map(s => <option key={s._id} value={s.name}>{s.name}</option>)}
+        </select>
+        <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} className={selCls}>
+          <option value="">All Levels</option>
+          {uniqueLevels.map(l => <option key={l} value={l}>{l}</option>)}
+        </select>
+        {hasFilters && (
+          <button onClick={() => { setFilterGrade(''); setFilterSubject(''); setFilterLevel(''); }}
+            className="flex items-center gap-1 px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm text-gray-500 hover:bg-gray-100 transition">
+            <MdClose className="text-base" /> Clear Filters
+          </button>
+        )}
+        <span className="text-sm text-gray-500 ml-auto">
+          <span className="font-semibold text-[#00aa59]">{filteredSets.length}</span> content set{filteredSets.length !== 1 ? 's' : ''}
+        </span>
+      </div>
 
       {/* One row per content set */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -1638,15 +1745,15 @@ const FlashcardsQAPromptsTab = () => {
               <th className="px-4 py-3.5 text-left">Topic</th>
               <th className="px-4 py-3.5 text-left">Level</th>
               <th className="px-4 py-3.5 text-left">Grade</th>
-              <th className="px-4 py-3.5 text-center">🃏 Flashcards</th>
-              <th className="px-4 py-3.5 text-center">❓ Q&A</th>
-              <th className="px-4 py-3.5 text-center">💬 Prompts</th>
+              <th className="px-4 py-3.5 text-center">?? Flashcards</th>
+              <th className="px-4 py-3.5 text-center">? Q&A</th>
+              <th className="px-4 py-3.5 text-center">?? Prompts</th>
               <th className="px-4 py-3.5 text-center w-28">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={9} className="text-center py-16 text-gray-400">Loading…</td></tr>
+              <tr><td colSpan={9} className="text-center py-16 text-gray-400">Loading�</td></tr>
             ) : filteredSets.length === 0 ? (
               <tr><td colSpan={9} className="text-center py-16 text-gray-400">
                 <MdInbox className="text-5xl text-gray-200 mx-auto mb-2" />
@@ -1655,10 +1762,10 @@ const FlashcardsQAPromptsTab = () => {
             ) : filteredSets.map((s, i) => (
               <tr key={s._id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 <td className="px-4 py-3 text-gray-400">{i + 1}</td>
-                <td className="px-4 py-3 font-semibold text-gray-800">{s.subjectName || '—'}</td>
-                <td className="px-4 py-3 text-gray-700">{s.topicTitle || '—'}</td>
+                <td className="px-4 py-3 font-semibold text-gray-800">{s.subjectName || '�'}</td>
+                <td className="px-4 py-3 text-gray-700">{s.topicTitle || '�'}</td>
                 <td className="px-4 py-3"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${levelColor(s.level)}`}>{s.level}</span></td>
-                <td className="px-4 py-3 text-gray-600">{s.grade || '—'}</td>
+                <td className="px-4 py-3 text-gray-600">{s.grade || '�'}</td>
                 <td className="px-4 py-3 text-center"><span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">{s.flashcards?.length || 0}</span></td>
                 <td className="px-4 py-3 text-center"><span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">{s.qaCards?.length || 0}</span></td>
                 <td className="px-4 py-3 text-center"><span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">{s.prompts?.length || 0}</span></td>
@@ -1688,10 +1795,10 @@ const FlashcardsQAPromptsTab = () => {
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Subject</p><p className="text-sm font-semibold text-gray-800">{viewing.subjectName}</p></div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Topic</p><p className="text-sm font-semibold text-gray-800">{viewing.topicTitle}</p></div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Level</p><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${levelColor(viewing.level)}`}>{viewing.level}</span></div>
-                <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Grade</p><p className="text-sm text-gray-700">{viewing.grade || '—'}</p></div>
+                <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Grade</p><p className="text-sm text-gray-700">{viewing.grade || '�'}</p></div>
               </div>
               {viewing.flashcards?.length > 0 && <div>
-                <p className="text-sm font-extrabold text-indigo-700 mb-3">🃏 Flashcards ({viewing.flashcards.length})</p>
+                <p className="text-sm font-extrabold text-indigo-700 mb-3">?? Flashcards ({viewing.flashcards.length})</p>
                 <div className="space-y-2">{viewing.flashcards.map((fc, i) => (
                   <div key={i} className="border border-indigo-100 rounded-xl p-3 bg-indigo-50/30 space-y-1">
                     <p className="text-xs font-bold text-gray-500">#{i+1} {fc.title}</p>
@@ -1702,7 +1809,7 @@ const FlashcardsQAPromptsTab = () => {
                 ))}</div>
               </div>}
               {viewing.qaCards?.length > 0 && <div>
-                <p className="text-sm font-extrabold text-blue-700 mb-3">❓ Q&A ({viewing.qaCards.length})</p>
+                <p className="text-sm font-extrabold text-blue-700 mb-3">? Q&A ({viewing.qaCards.length})</p>
                 <div className="space-y-2">{viewing.qaCards.map((qa, i) => (
                   <div key={i} className="border border-blue-100 rounded-xl p-3 bg-blue-50/30 space-y-1">
                     <p className="text-xs font-bold text-gray-700">Q: {qa.question}</p>
@@ -1711,7 +1818,7 @@ const FlashcardsQAPromptsTab = () => {
                 ))}</div>
               </div>}
               {viewing.prompts?.length > 0 && <div>
-                <p className="text-sm font-extrabold text-amber-700 mb-3">💬 Prompts ({viewing.prompts.length})</p>
+                <p className="text-sm font-extrabold text-amber-700 mb-3">?? Prompts ({viewing.prompts.length})</p>
                 <div className="space-y-2">{viewing.prompts.map((pr, i) => (
                   <div key={i} className="border border-amber-100 rounded-xl p-3 bg-amber-50/30 space-y-1">
                     <p className="text-xs text-gray-700">{pr.prompt}</p>
@@ -1737,49 +1844,49 @@ const FlashcardsQAPromptsTab = () => {
               <button onClick={() => { setShowModal(false); resetForm(); }} className="w-9 h-9 rounded-full hover:bg-white/20 flex items-center justify-center text-white"><MdClose className="text-xl" /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
-              <SharedFields form={form} set={set} subjects={subjectList} grades={grades} filteredTopics={filteredTopics} formSubjectId={formSubjectId} setFormSubjectId={setFormSubjectId} />
+              <SharedFields form={form} set={set} subjects={subjectList} grades={grades} filteredTopics={filteredTopics} formSubjectId={formSubjectId} setFormSubjectId={setFormSubjectId} formGrade={formGrade} setFormGrade={setFormGrade} formLevel={formLevel} setFormLevel={setFormLevel} />
               {/* Flashcards */}
               <div className="border-2 border-indigo-100 rounded-2xl p-5 space-y-4 bg-indigo-50/30">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-extrabold text-indigo-700">🃏 Flashcards ({fcCards.length})</p>
+                  <p className="text-sm font-extrabold text-indigo-700">?? Flashcards ({fcCards.length})</p>
                   <button type="button" onClick={() => setFcCards(l => [...l, { title: '', description: '', subtitle: '', subdescription: '' }])} className="flex items-center gap-1 text-xs font-bold bg-indigo-500 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-600"><MdAdd /> Add</button>
                 </div>
                 {fcCards.map((card, i) => (
                   <div key={i} className="space-y-3 border border-indigo-200 rounded-xl p-3 relative">
                     {fcCards.length > 1 && <button type="button" onClick={() => setFcCards(l => l.filter((_, idx) => idx !== i))} className="absolute top-2 right-2 text-red-400 hover:text-red-600"><MdDelete className="text-sm" /></button>}
                     <span className="w-5 h-5 rounded-full bg-indigo-500 text-white text-xs font-bold flex items-center justify-center">{i + 1}</span>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title</label><input className={inp} placeholder="Title…" value={card.title} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Description</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Description…" value={card.description} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Subtitle</label><input className={inp} placeholder="Subtitle…" value={card.subtitle} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, subtitle: e.target.value } : x))} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Sub Description</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Sub description…" value={card.subdescription} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, subdescription: e.target.value } : x))} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title</label><input className={inp} placeholder="Title�" value={card.title} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Description</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Description�" value={card.description} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Subtitle</label><input className={inp} placeholder="Subtitle�" value={card.subtitle} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, subtitle: e.target.value } : x))} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Sub Description</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Sub description�" value={card.subdescription} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, subdescription: e.target.value } : x))} /></div>
                   </div>
                 ))}
               </div>
               {/* Q&A */}
               <div className="border-2 border-blue-100 rounded-2xl p-5 space-y-4 bg-blue-50/30">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-extrabold text-blue-700">❓ Q&A ({qaList.length})</p>
+                  <p className="text-sm font-extrabold text-blue-700">? Q&A ({qaList.length})</p>
                   <button type="button" onClick={() => setQaList(l => [...l, { question: '', answer: '' }])} className="flex items-center gap-1 text-xs font-bold bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600"><MdAdd /> Add</button>
                 </div>
                 {qaList.map((it, i) => (
                   <div key={i} className="space-y-3 border border-blue-200 rounded-xl p-3 relative">
                     {qaList.length > 1 && <button type="button" onClick={() => setQaList(l => l.filter((_, idx) => idx !== i))} className="absolute top-2 right-2 text-red-400 hover:text-red-600"><MdDelete className="text-sm" /></button>}
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Question</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Question…" value={it.question} onChange={e => setQaList(l => l.map((x, idx) => idx === i ? { ...x, question: e.target.value } : x))} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Answer</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Answer…" value={it.answer} onChange={e => setQaList(l => l.map((x, idx) => idx === i ? { ...x, answer: e.target.value } : x))} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Question</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Question�" value={it.question} onChange={e => setQaList(l => l.map((x, idx) => idx === i ? { ...x, question: e.target.value } : x))} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Answer</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Answer�" value={it.answer} onChange={e => setQaList(l => l.map((x, idx) => idx === i ? { ...x, answer: e.target.value } : x))} /></div>
                   </div>
                 ))}
               </div>
               {/* Prompts */}
               <div className="border-2 border-amber-100 rounded-2xl p-5 space-y-4 bg-amber-50/30">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-extrabold text-amber-700">💬 Prompts ({promptList.length})</p>
+                  <p className="text-sm font-extrabold text-amber-700">?? Prompts ({promptList.length})</p>
                   <button type="button" onClick={() => setPromptList(l => [...l, { prompt: '', hint: '' }])} className="flex items-center gap-1 text-xs font-bold bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600"><MdAdd /> Add</button>
                 </div>
                 {promptList.map((it, i) => (
                   <div key={i} className="space-y-3 border border-amber-200 rounded-xl p-3 relative">
                     {promptList.length > 1 && <button type="button" onClick={() => setPromptList(l => l.filter((_, idx) => idx !== i))} className="absolute top-2 right-2 text-red-400 hover:text-red-600"><MdDelete className="text-sm" /></button>}
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Prompt</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Prompt…" value={it.prompt} onChange={e => setPromptList(l => l.map((x, idx) => idx === i ? { ...x, prompt: e.target.value } : x))} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Hint</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Hint…" value={it.hint} onChange={e => setPromptList(l => l.map((x, idx) => idx === i ? { ...x, hint: e.target.value } : x))} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Prompt</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Prompt�" value={it.prompt} onChange={e => setPromptList(l => l.map((x, idx) => idx === i ? { ...x, prompt: e.target.value } : x))} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Hint</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Hint�" value={it.hint} onChange={e => setPromptList(l => l.map((x, idx) => idx === i ? { ...x, hint: e.target.value } : x))} /></div>
                   </div>
                 ))}
               </div>
@@ -1788,7 +1895,7 @@ const FlashcardsQAPromptsTab = () => {
               <button onClick={() => { setShowModal(false); resetForm(); }} className="px-6 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100">Cancel</button>
               <button disabled={!form.subjectId || !form.topicId || saving} onClick={handleSave}
                 className={`flex items-center gap-2 px-8 py-2.5 rounded-xl text-white text-sm font-bold transition shadow ${form.subjectId && form.topicId && !saving ? 'bg-[#00aa59] hover:bg-[#008f4a]' : 'bg-gray-300 cursor-not-allowed'}`}>
-                <MdSave /> {saving ? 'Saving…' : editing ? 'Save Changes' : 'Save All'}
+                <MdSave /> {saving ? 'Saving�' : editing ? 'Save Changes' : 'Save All'}
               </button>
             </div>
           </div>
@@ -1798,7 +1905,7 @@ const FlashcardsQAPromptsTab = () => {
   );
 };
 
-// ── Video Uploader ────────────────────────────────────────────────────────────
+// -- Video Uploader ------------------------------------------------------------
 const VideoUploader = ({ value, onChange }) => {
   const [uploading, setUploading] = useState(false);
 
@@ -1831,8 +1938,8 @@ const VideoUploader = ({ value, onChange }) => {
             : <MdPlayCircle className="text-2xl text-blue-500" />}
         </div>
         <div>
-          <p className="text-sm font-semibold text-blue-600">{uploading ? 'Uploading…' : value ? 'Change Video' : 'Upload Video'}</p>
-          <p className="text-xs text-gray-400 mt-0.5">MP4, MOV, AVI · max 200MB</p>
+          <p className="text-sm font-semibold text-blue-600">{uploading ? 'Uploading�' : value ? 'Change Video' : 'Upload Video'}</p>
+          <p className="text-xs text-gray-400 mt-0.5">MP4, MOV, AVI � max 200MB</p>
         </div>
         <input type="file" accept="video/*" className="hidden" onChange={handleFile} />
       </label>
@@ -1851,7 +1958,7 @@ const VideoUploader = ({ value, onChange }) => {
   );
 };
 
-// ── Learn Details Tab ─────────────────────────────────────────────────────────
+// -- Learn Details Tab ---------------------------------------------------------
 const LearnDetailsTab = () => {
   const { subjects, topics, grades } = useDropdowns();
   const [items, setItems]       = useState([]);
@@ -1861,8 +1968,18 @@ const LearnDetailsTab = () => {
   const [editing, setEditing]   = useState(null);
   const [viewing, setViewing]   = useState(null);
   const [formSubjectId, setFormSubjectId] = useState('');
+  const [formGrade, setFormGrade]         = useState('');
+  const [formLevel, setFormLevel]         = useState('Basic');
   const [searchTerm, setSearchTerm] = useState("");
-  const filteredTopics = topics.filter(t => !formSubjectId || String(t.subjectId) === String(formSubjectId));
+  const [filterGrade, setFilterGrade]     = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [filterLevel, setFilterLevel]     = useState('');
+  const filteredTopics = topics.filter(t => {
+    const matchSubject = !formSubjectId || String(t.subjectId) === String(formSubjectId);
+    const matchGrade   = !formGrade   || t.grade === formGrade;
+    const matchLevel   = !formLevel   || t.level === formLevel;
+    return matchSubject && matchGrade && matchLevel;
+  });
 
   const emptyForm = { subjectId: '', topicId: '', level: 'Basic', grade: '', overview: '', keyConcepts: '', practicalApplication: '', supportingLearning: '', videoUrl: '' };
   const [form, setForm] = useState(emptyForm);
@@ -1876,11 +1993,13 @@ const LearnDetailsTab = () => {
   };
   useEffect(() => { load(); }, []);
 
-  const openAdd = () => { setEditing(null); setForm(emptyForm); setFormSubjectId(''); setShowModal(true); };
+  const openAdd = () => { setEditing(null); setForm(emptyForm); setFormSubjectId(''); setFormGrade(''); setFormLevel('Basic'); setShowModal(true); };
   const openEdit = (item) => {
     setEditing(item);
     setForm({ subjectId: item.subjectId, topicId: item.topicId, level: item.level || 'Basic', grade: item.grade || '', overview: item.overview || '', keyConcepts: item.keyConcepts || '', practicalApplication: item.practicalApplication || '', supportingLearning: item.supportingLearning || '', videoUrl: item.videoUrl || '' });
     setFormSubjectId(item.subjectId);
+    setFormGrade(item.grade || '');
+    setFormLevel(item.level || 'Basic');
     setShowModal(true);
   };
 
@@ -1902,14 +2021,24 @@ const LearnDetailsTab = () => {
 
   const levelColor = l => l === 'Advanced' ? 'bg-red-100 text-red-600' : l === 'Intermediate' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
 
-  // Filter learn details based on search term
-  const filteredItems = items.filter(item =>
-    item.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.topicTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.level?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.grade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.overview?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const uniqueLevels = ['Basic', 'Intermediate', 'Advanced'];
+
+  // Filter learn details based on search + dropdowns
+  const filteredItems = items.filter(item => {
+    const matchSearch =
+      item.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.topicTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.level?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.grade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.overview?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchGrade   = !filterGrade   || item.grade === filterGrade;
+    const matchSubject = !filterSubject || item.subjectName === filterSubject;
+    const matchLevel   = !filterLevel   || item.level === filterLevel;
+    return matchSearch && matchGrade && matchSubject && matchLevel;
+  });
+
+  const hasFilters = filterGrade || filterSubject || filterLevel;
+  const selCls = "border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#00aa59] focus:ring-2 focus:ring-[#00aa59]/10 bg-white text-gray-700 cursor-pointer";
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen space-y-5">
@@ -1941,12 +2070,30 @@ const LearnDetailsTab = () => {
         </button>
       </div>
 
-      {/* Results count */}
-      {searchTerm && (
-        <div className="text-sm text-gray-600">
-          Found <span className="font-semibold text-[#00aa59]">{filteredItems.length}</span> learn detail{filteredItems.length !== 1 ? 's' : ''}
-        </div>
-      )}
+      {/* Filter Dropdowns */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} className={selCls}>
+          <option value="">All Grades</option>
+          {grades.map(g => <option key={g._id} value={g.title}>{g.title}</option>)}
+        </select>
+        <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)} className={selCls}>
+          <option value="">All Subjects</option>
+          {subjects.map(s => <option key={s._id} value={s.name}>{s.name}</option>)}
+        </select>
+        <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} className={selCls}>
+          <option value="">All Levels</option>
+          {uniqueLevels.map(l => <option key={l} value={l}>{l}</option>)}
+        </select>
+        {hasFilters && (
+          <button onClick={() => { setFilterGrade(''); setFilterSubject(''); setFilterLevel(''); }}
+            className="flex items-center gap-1 px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm text-gray-500 hover:bg-gray-100 transition">
+            <MdClose className="text-base" /> Clear Filters
+          </button>
+        )}
+        <span className="text-sm text-gray-500 ml-auto">
+          <span className="font-semibold text-[#00aa59]">{filteredItems.length}</span> learn detail{filteredItems.length !== 1 ? 's' : ''}
+        </span>
+      </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
@@ -1963,7 +2110,7 @@ const LearnDetailsTab = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="text-center py-16 text-gray-400">Loading…</td></tr>
+              <tr><td colSpan={7} className="text-center py-16 text-gray-400">Loading�</td></tr>
             ) : filteredItems.length === 0 ? (
               <tr><td colSpan={7} className="text-center py-16 text-gray-400">
                 <MdInbox className="text-5xl text-gray-200 mx-auto mb-2" />
@@ -1972,11 +2119,11 @@ const LearnDetailsTab = () => {
             ) : filteredItems.map((item, i) => (
               <tr key={item._id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 <td className="px-4 py-3 text-gray-400">{i + 1}</td>
-                <td className="px-4 py-3 font-semibold text-gray-800">{item.subjectName || '—'}</td>
-                <td className="px-4 py-3 text-gray-700">{item.topicTitle || '—'}</td>
+                <td className="px-4 py-3 font-semibold text-gray-800">{item.subjectName || '�'}</td>
+                <td className="px-4 py-3 text-gray-700">{item.topicTitle || '�'}</td>
                 <td className="px-4 py-3"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${levelColor(item.level)}`}>{item.level}</span></td>
-                <td className="px-4 py-3 text-gray-600">{item.grade || '—'}</td>
-                <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{item.overview || '—'}</td>
+                <td className="px-4 py-3 text-gray-600">{item.grade || '�'}</td>
+                <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{item.overview || '�'}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-2">
                     <button onClick={() => setViewing(item)} title="View" className="text-[#00aa59] hover:text-[#008f4a]"><MdVisibility className="text-xl" /></button>
@@ -1995,7 +2142,7 @@ const LearnDetailsTab = () => {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden max-h-[92vh]">
             <div className="bg-[#00aa59] px-7 py-5 flex items-center justify-between shrink-0">
-              <h2 className="text-lg font-extrabold text-white">🎓 Learn Detail</h2>
+              <h2 className="text-lg font-extrabold text-white">?? Learn Detail</h2>
               <button onClick={() => setViewing(null)} className="w-9 h-9 rounded-full hover:bg-white/20 flex items-center justify-center text-white"><MdClose className="text-xl" /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-7 py-6 space-y-4">
@@ -2003,7 +2150,7 @@ const LearnDetailsTab = () => {
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Subject</p><p className="text-sm font-semibold text-gray-800">{viewing.subjectName}</p></div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Topic</p><p className="text-sm font-semibold text-gray-800">{viewing.topicTitle}</p></div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Level</p><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${levelColor(viewing.level)}`}>{viewing.level}</span></div>
-                <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Grade</p><p className="text-sm text-gray-700">{viewing.grade || '—'}</p></div>
+                <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Grade</p><p className="text-sm text-gray-700">{viewing.grade || '�'}</p></div>
               </div>
               {[['Overview', 'overview'], ['Key Concepts', 'keyConcepts'], ['Practical Application', 'practicalApplication'], ['Supporting Learning', 'supportingLearning']].map(([label, key]) => viewing[key] && (
                 <div key={key}><p className="text-xs font-bold text-gray-400 uppercase mb-1">{label}</p><p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{viewing[key]}</p></div>
@@ -2032,13 +2179,13 @@ const LearnDetailsTab = () => {
             </div>
             <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
               {/* Dropdowns */}
-              <SharedFields form={form} set={set} subjects={subjects} grades={grades} filteredTopics={filteredTopics} formSubjectId={formSubjectId} setFormSubjectId={setFormSubjectId} />
+              <SharedFields form={form} set={set} subjects={subjects} grades={grades} filteredTopics={filteredTopics} formSubjectId={formSubjectId} setFormSubjectId={setFormSubjectId} formGrade={formGrade} setFormGrade={setFormGrade} formLevel={formLevel} setFormLevel={setFormLevel} />
 
               {/* Content fields */}
-              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Overview</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Overview of the topic…" value={form.overview} onChange={e => set('overview', e.target.value)} /></div>
-              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Key Concepts</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Key concepts to understand…" value={form.keyConcepts} onChange={e => set('keyConcepts', e.target.value)} /></div>
-              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Practical Application</label><textarea className={`${inp} resize-none`} rows={3} placeholder="How to apply in real life…" value={form.practicalApplication} onChange={e => set('practicalApplication', e.target.value)} /></div>
-              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Supporting Learning</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Additional resources or tips…" value={form.supportingLearning} onChange={e => set('supportingLearning', e.target.value)} /></div>
+              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Overview</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Overview of the topic�" value={form.overview} onChange={e => set('overview', e.target.value)} /></div>
+              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Key Concepts</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Key concepts to understand�" value={form.keyConcepts} onChange={e => set('keyConcepts', e.target.value)} /></div>
+              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Practical Application</label><textarea className={`${inp} resize-none`} rows={3} placeholder="How to apply in real life�" value={form.practicalApplication} onChange={e => set('practicalApplication', e.target.value)} /></div>
+              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Supporting Learning</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Additional resources or tips�" value={form.supportingLearning} onChange={e => set('supportingLearning', e.target.value)} /></div>
 
               {/* Video Upload */}
               <div>
@@ -2050,7 +2197,7 @@ const LearnDetailsTab = () => {
               <button onClick={() => setShowModal(false)} className="px-6 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100">Cancel</button>
               <button disabled={!form.subjectId || !form.topicId || saving} onClick={handleSave}
                 className={`flex items-center gap-2 px-8 py-2.5 rounded-xl text-white text-sm font-bold transition shadow ${form.subjectId && form.topicId && !saving ? 'bg-[#00aa59] hover:bg-[#008f4a]' : 'bg-gray-300 cursor-not-allowed'}`}>
-                <MdSave /> {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add'}
+                <MdSave /> {saving ? 'Saving�' : editing ? 'Save Changes' : 'Add'}
               </button>
             </div>
           </div>
@@ -2060,7 +2207,7 @@ const LearnDetailsTab = () => {
   );
 };
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// -- Main Component ------------------------------------------------------------
 const AdminLearningSubjects = () => {
   const [subjects, setSubjects]     = useState([]);
   const [loading, setLoading]       = useState(true);

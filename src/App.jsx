@@ -30,6 +30,7 @@ import AdminCustomerRatings from './components/Settings/AdminCustomerRatings'
 import QuestionTypes from './components/Quize/QuestionTypes'
 import QuizSettings from './components/Quize/QuizSettings'
 import QuizQuestions from './components/Quize/QuizQuestions'
+import QuizResults from './components/Quize/QuizResults'
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -53,6 +54,7 @@ function App() {
           <Route path="question-types" element={<QuestionTypes />} />
           <Route path="quiz-settings" element={<QuizSettings />} />
           <Route path="quiz-questions" element={<QuizQuestions />} />
+          <Route path="quiz-results" element={<QuizResults />} />
 
           {/* User Management */}
           <Route path="grade" element={<AdminGrade />} />

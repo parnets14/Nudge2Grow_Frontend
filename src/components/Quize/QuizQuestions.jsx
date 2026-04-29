@@ -3,7 +3,7 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdVisibility, MdFileUpload, MdDownload, MdQuiz, MdArrowBack, MdArrowForward } from "react-icons/md";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nudgebackend.onrender.com/api';
 
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#00bf62] transition";
 
@@ -17,6 +17,9 @@ const QuizQuestions = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterGrade, setFilterGrade]     = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [filterLevel, setFilterLevel]     = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
   
@@ -572,17 +575,22 @@ const QuizQuestions = () => {
     setFilteredTopics([]);
   };
 
-  const filteredQuestions = quizQuestions.filter(q =>
-    q.question?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    q.answer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    q.grade?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    q.grade?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    q.subject?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    q.topic?.topic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    q.topic?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    q.questionType?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    q.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredQuestions = quizQuestions.filter(q => {
+    const matchSearch =
+      q.question?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      q.answer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      q.grade?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      q.grade?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      q.subject?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      q.topic?.topic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      q.topic?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      q.questionType?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      q.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchGrade   = !filterGrade   || q.grade?._id === filterGrade;
+    const matchSubject = !filterSubject || q.subject?._id === filterSubject;
+    const matchLevel   = !filterLevel   || q.level === filterLevel;
+    return matchSearch && matchGrade && matchSubject && matchLevel;
+  });
 
   // Pagination logic
   const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
@@ -590,10 +598,10 @@ const QuizQuestions = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedQuestions = filteredQuestions.slice(startIndex, endIndex);
 
-  // Reset to page 1 when search changes
+  // Reset to page 1 when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, filterGrade, filterSubject, filterLevel]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>;
@@ -632,7 +640,7 @@ const QuizQuestions = () => {
 
       {/* Search Bar */}
       {!showForm && (
-        <div className="mb-4 relative">
+        <div className="mb-4 space-y-3">
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔍</span>
             <input
@@ -651,10 +659,45 @@ const QuizQuestions = () => {
               </button>
             )}
           </div>
-          {searchTerm && (
-            <p className="text-xs text-gray-500 mt-1.5">Found {filteredQuestions.length} question{filteredQuestions.length !== 1 ? 's' : ''}
-            {filteredQuestions.length > itemsPerPage && ` (showing ${startIndex + 1}-${Math.min(endIndex, filteredQuestions.length)})`}</p>
-          )}
+
+          {/* Filter Dropdowns */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <select
+              value={filterGrade}
+              onChange={e => setFilterGrade(e.target.value)}
+              className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#00bf62] focus:ring-2 focus:ring-[#00bf62]/10 bg-white text-gray-700 cursor-pointer"
+            >
+              <option value="">All Grades</option>
+              {grades.map(g => <option key={g._id} value={g._id}>{g.title || g.name}</option>)}
+            </select>
+            <select
+              value={filterSubject}
+              onChange={e => setFilterSubject(e.target.value)}
+              className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#00bf62] focus:ring-2 focus:ring-[#00bf62]/10 bg-white text-gray-700 cursor-pointer"
+            >
+              <option value="">All Subjects</option>
+              {subjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+            </select>
+            <select
+              value={filterLevel}
+              onChange={e => setFilterLevel(e.target.value)}
+              className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#00bf62] focus:ring-2 focus:ring-[#00bf62]/10 bg-white text-gray-700 cursor-pointer"
+            >
+              <option value="">All Levels</option>
+              {['Basic', 'Intermediate', 'Advanced'].map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+            {(filterGrade || filterSubject || filterLevel) && (
+              <button
+                onClick={() => { setFilterGrade(''); setFilterSubject(''); setFilterLevel(''); }}
+                className="flex items-center gap-1 px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm text-gray-500 hover:bg-gray-100 transition"
+              >
+                <MdClose className="text-base" /> Clear Filters
+              </button>
+            )}
+            <span className="text-sm text-gray-500 ml-auto">
+              <span className="font-semibold text-[#00bf62]">{filteredQuestions.length}</span> question{filteredQuestions.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
       )}
 

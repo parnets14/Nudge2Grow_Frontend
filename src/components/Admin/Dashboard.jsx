@@ -40,6 +40,7 @@ const AdminDashboard = () => {
     { path: "/admin/question-types", label: "Question Types", icon: <MdQuiz /> },
     { path: "/admin/quiz-settings", label: "Quiz Settings", icon: <MdTune /> },
     { path: "/admin/quiz-questions", label: "Quiz Questions", icon: <MdQuiz /> },
+    { path: "/admin/quiz-results", label: "Quiz Results", icon: <MdEmojiEvents /> },
   ];
 
   const userMgmtItems = [
@@ -129,6 +130,7 @@ const AdminDashboard = () => {
     if (p.includes("question-types"))              return "Question Types";
     if (p.includes("quiz-settings"))               return "Quiz Settings";
     if (p.includes("quiz-questions"))              return "Quiz Questions";
+    if (p.includes("quiz-results"))                return "Quiz Results";
     return "Dashboard";
   };
 

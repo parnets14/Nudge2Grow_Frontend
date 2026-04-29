@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { MdPeople, MdPhone, MdEmail, MdSearch, MdRefresh, MdClose, MdDelete, MdVisibility, MdChildCare, MdSchool, MdCake, MdMenuBook, MdArrowBack, MdArrowForward } from "react-icons/md";
 import { api } from "../../api";
 
-const StudentModal = ({ parent, beyondSchoolMap, avatarMap, onClose, onDelete }) => {
+const StudentModal = ({ parent, beyondSchoolMap, avatarMap, subjectMap, onClose, onDelete }) => {
   const children = parent.children || [];
 
   return (
@@ -399,6 +399,7 @@ const AdminUsers = () => {
           parent={viewParent}
           beyondSchoolMap={beyondSchoolMap}
           avatarMap={avatarMap}
+          subjectMap={subjectMap}
           onClose={() => setViewParent(null)}
           onDelete={handleDelete}
         />
