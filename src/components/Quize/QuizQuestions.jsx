@@ -91,8 +91,15 @@ const QuizQuestions = () => {
 
   const fetchSubjects = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/learning-subjects/subjects`);
-      setSubjects(response.data);
+      const [regularRes, beyondRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/learning-subjects/subjects`),
+        axios.get(`${API_BASE_URL}/customize-learning`),
+      ]);
+      const regular = regularRes.data || [];
+      const beyond  = (beyondRes.data || [])
+        .filter(s => s.type === 'life_skill')
+        .map(s => ({ ...s, _isBeyondSchool: true, name: `${s.name} [Beyond School]` }));
+      setSubjects([...regular, ...beyond]);
     } catch (error) {
       console.error('Error fetching subjects:', error);
     }
@@ -100,22 +107,31 @@ const QuizQuestions = () => {
 
   const fetchTopicsBySubject = async (subjectId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/topics`);
+      const selectedSubject = subjects.find(s => s._id === subjectId);
+      const isBeyond = selectedSubject?._isBeyondSchool;
+
+      // Use the correct endpoint based on subject type
+      const endpoint = isBeyond
+        ? `${API_BASE_URL}/beyond-school-topics`
+        : `${API_BASE_URL}/topics`;
+
+      const response = await axios.get(endpoint);
       const selectedGrade = grades.find(g => g._id === formData.grade);
       const selectedGradeTitle = selectedGrade?.title || selectedGrade?.name;
-      
+
       const filtered = response.data.filter(topic => {
         const topicSubjectId = topic.subjectId?._id || topic.subjectId;
         const matchesSubject = topicSubjectId === subjectId;
         const topicGrade = topic.grade;
         const matchesGrade = formData.grade ? topicGrade === selectedGradeTitle : true;
+        // Skip level filtering for beyond school subjects
         const topicLevel = topic.level?.toLowerCase();
         const selectedLevel = formData.level?.toLowerCase();
-        const matchesLevel = formData.level ? topicLevel === selectedLevel : true;
-        
+        const matchesLevel = (isBeyond || !formData.level) ? true : topicLevel === selectedLevel;
+
         return matchesSubject && matchesGrade && matchesLevel;
       });
-      
+
       setFilteredTopics(filtered);
     } catch (error) {
       console.error('Error fetching topics:', error);
@@ -173,7 +189,16 @@ const QuizQuestions = () => {
     }));
 
     if (name === 'grade' || name === 'subject' || name === 'level') {
-      setFormData(prev => ({ ...prev, [name]: value, topic: '' }));
+      const isBeyondSubject = name === 'subject'
+        ? subjects.find(s => s._id === value)?._isBeyondSchool
+        : subjects.find(s => s._id === formData.subject)?._isBeyondSchool;
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        topic: '',
+        // Clear level when switching to a beyond school subject
+        ...(name === 'subject' && isBeyondSubject ? { level: '' } : {}),
+      }));
     }
   };
 
@@ -233,11 +258,14 @@ const QuizQuestions = () => {
       );
     }
 
+    const isBeyondSubject = subjects.find(s => s._id === formData.subject)?._isBeyondSchool;
+
     const data = {
       grade: formData.grade,
       subject: formData.subject,
-      level: formData.level,
-      topic: formData.topic,
+      level: isBeyondSubject ? null : formData.level,
+      topic: isBeyondSubject ? null : formData.topic,
+      beyondSchoolTopic: isBeyondSubject ? formData.topic : null,
       questionType: formData.questionType,
       question: formData.question,
       answer: formData.answer,
@@ -676,7 +704,16 @@ const QuizQuestions = () => {
               className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#00bf62] focus:ring-2 focus:ring-[#00bf62]/10 bg-white text-gray-700 cursor-pointer"
             >
               <option value="">All Subjects</option>
-              {subjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+              {subjects.filter(s => !s._isBeyondSchool).length > 0 && (
+                <optgroup label="Learning Subjects">
+                  {subjects.filter(s => !s._isBeyondSchool).map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                </optgroup>
+              )}
+              {subjects.filter(s => s._isBeyondSchool).length > 0 && (
+                <optgroup label="Beyond School">
+                  {subjects.filter(s => s._isBeyondSchool).map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                </optgroup>
+              )}
             </select>
             <select
               value={filterLevel}
@@ -750,15 +787,25 @@ const QuizQuestions = () => {
                   className={inp}
                 >
                   <option value="">Select Subject</option>
-                  {subjects.map(subject => (
-                    <option key={subject._id} value={subject._id}>
-                      {subject.name}
-                    </option>
-                  ))}
+                  {subjects.filter(s => !s._isBeyondSchool).length > 0 && (
+                    <optgroup label="Learning Subjects">
+                      {subjects.filter(s => !s._isBeyondSchool).map(subject => (
+                        <option key={subject._id} value={subject._id}>{subject.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {subjects.filter(s => s._isBeyondSchool).length > 0 && (
+                    <optgroup label="Beyond School">
+                      {subjects.filter(s => s._isBeyondSchool).map(subject => (
+                        <option key={subject._id} value={subject._id}>{subject.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
 
-              {/* Level */}
+              {/* Level — hidden for Beyond School subjects */}
+              {!subjects.find(s => s._id === formData.subject)?._isBeyondSchool && (
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">
                   Level <span className="text-red-500">*</span>
@@ -775,6 +822,7 @@ const QuizQuestions = () => {
                   <option value="Advanced">Advanced</option>
                 </select>
               </div>
+              )}
 
               {/* Topic */}
               <div>
@@ -792,7 +840,7 @@ const QuizQuestions = () => {
                   <option value="">Select Topic</option>
                   {filteredTopics.map(topic => (
                     <option key={topic._id} value={topic._id}>
-                      {topic.title || topic.name}
+                      {topic.topic || topic.title || topic.name}
                     </option>
                   ))}
                 </select>

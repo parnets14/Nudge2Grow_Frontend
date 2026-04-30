@@ -321,7 +321,7 @@ const Modal = ({ entry, onSave, onClose, saving, grades }) => {
     setForm({ ...form, detailSections: updated });
   };
 
-  const valid = form.title.trim() !== "" && form.subtitle.trim() !== "" && form.description.trim() !== "";
+  const valid = form.title.trim() !== "" && form.description.trim() !== "";
 
   // Icon search results
   const searchResults = form._iconSearch
@@ -352,7 +352,7 @@ const Modal = ({ entry, onSave, onClose, saving, grades }) => {
                 <input className={inp} placeholder="e.g. The Moon's Secret Phases" value={form.title} onChange={f("title")} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Subtitle <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Subtitle</label>
                 <input className={inp} placeholder="e.g. Perfect for tonight's bedtime routine" value={form.subtitle} onChange={f("subtitle")} />
               </div>
             </div>
@@ -363,7 +363,7 @@ const Modal = ({ entry, onSave, onClose, saving, grades }) => {
               <textarea rows={3} className={`${inp} resize-none`} placeholder="Enter detailed description..." value={form.description} onChange={f("description")} />
             </div>
 
-            {/* Row 3: Icon, Icon Color, Grade */}
+            {/* Row 3: Icon Color & Grade */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Icon Color</label>
@@ -815,7 +815,6 @@ const FeaturedContentManagement = () => {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Title</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Subtitle</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Grade</th>
                   <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -828,11 +827,6 @@ const FeaturedContentManagement = () => {
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-xs text-gray-500">{item.subtitle}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-block px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium">
-                        {item.grade}
-                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-center items-center gap-2">

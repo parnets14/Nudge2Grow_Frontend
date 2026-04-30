@@ -97,6 +97,32 @@ export const api = {
     remove: (id)     => del(`/learn-details/${id}`),
   },
 
+  // Beyond School — Topics / Flashcards / Learn Details
+  beyondSchoolTopics: {
+    getAll: ()       => get("/beyond-school-topics"),
+    create: (body)   => post("/beyond-school-topics", body),
+    update: (id, b)  => put(`/beyond-school-topics/${id}`, b),
+    remove: (id)     => del(`/beyond-school-topics/${id}`),
+  },
+  beyondSchoolContentSets: {
+    getAll: ()       => get("/beyond-school-content-sets"),
+    create: (body)   => post("/beyond-school-content-sets", body),
+    update: (id, b)  => put(`/beyond-school-content-sets/${id}`, b),
+    remove: (id)     => del(`/beyond-school-content-sets/${id}`),
+  },
+  beyondSchoolFlashcards: {
+    getAll: ()       => get("/beyond-school-flashcards"),
+    create: (body)   => post("/beyond-school-flashcards", body),
+    update: (id, b)  => put(`/beyond-school-flashcards/${id}`, b),
+    remove: (id)     => del(`/beyond-school-flashcards/${id}`),
+  },
+  beyondSchoolLearnDetails: {
+    getAll: ()       => get("/beyond-school-learn-details"),
+    create: (body)   => post("/beyond-school-learn-details", body),
+    update: (id, b)  => put(`/beyond-school-learn-details/${id}`, b),
+    remove: (id)     => del(`/beyond-school-learn-details/${id}`),
+  },
+
   // Topics
   topics: {
     getAll: ()       => get("/topics"),

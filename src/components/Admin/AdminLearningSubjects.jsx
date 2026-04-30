@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import {
   MdAdd, MdEdit, MdDelete, MdInbox, MdMenuBook, MdLock, MdTrendingUp,
   MdClose, MdSave, MdExpandMore, MdExpandLess, MdPlayCircle, MdImage,
@@ -1563,7 +1563,7 @@ const SharedFields = ({ form, set, subjects, grades, filteredTopics, formSubject
       <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Topic *</label>
       <select className={inp} value={form.topicId} onChange={e => set('topicId', e.target.value)} disabled={!form.subjectId || filteredTopics.length === 0}>
         <option value="">Select Topic</option>
-        {filteredTopics.map(t => <option key={t._id} value={t._id}>{t.title}</option>)}
+        {filteredTopics.map(t => <option key={t._id} value={t._id}>{t.topic || t.title}</option>)}
       </select>
       {form.subjectId && filteredTopics.length === 0 && (
         <p className="mt-1.5 text-xs text-amber-600 flex items-center gap-1">
@@ -1595,7 +1595,13 @@ const FlashcardsQAPromptsTab = () => {
     const matchSubject = !formSubjectId || String(t.subjectId) === String(formSubjectId);
     const matchGrade   = !formGrade   || t.grade === formGrade;
     const matchLevel   = !formLevel   || t.level === formLevel;
-    return matchSubject && matchGrade && matchLevel;
+    if (!matchSubject || !matchGrade || !matchLevel) return false;
+    // Exclude topics already assigned to a content set (unless editing that set)
+    const alreadyUsed = sets.some(s =>
+      String(s.topicId) === String(t._id) &&
+      (!editing || String(s._id) !== String(editing._id))
+    );
+    return !alreadyUsed;
   });
 
   const [form, setForm]         = useState({ subjectId: '', topicId: '', level: 'Basic', grade: '' });
@@ -1763,7 +1769,13 @@ const FlashcardsQAPromptsTab = () => {
               <tr key={s._id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 <td className="px-4 py-3 text-gray-400">{i + 1}</td>
                 <td className="px-4 py-3 font-semibold text-gray-800">{s.subjectName || '�'}</td>
-                <td className="px-4 py-3 text-gray-700">{s.topicTitle || '�'}</td>
+                <td className="px-4 py-3 text-gray-700">{
+                  // Look up the topic name from the topics list for accurate display
+                  (() => {
+                    const t = topics.find(t => String(t._id) === String(s.topicId));
+                    return t ? (t.topic || t.title) : (s.topicTitle || '—');
+                  })()
+                }</td>
                 <td className="px-4 py-3"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${levelColor(s.level)}`}>{s.level}</span></td>
                 <td className="px-4 py-3 text-gray-600">{s.grade || '�'}</td>
                 <td className="px-4 py-3 text-center"><span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">{s.flashcards?.length || 0}</span></td>
@@ -1905,55 +1917,48 @@ const FlashcardsQAPromptsTab = () => {
   );
 };
 
-// -- Video Uploader ------------------------------------------------------------
-const VideoUploader = ({ value, onChange }) => {
-  const [uploading, setUploading] = useState(false);
+// -- YouTube URL List ---------------------------------------------------------
+const YouTubeUrlList = ({ urls, onChange }) => {
+  const addUrl = () => onChange([...urls, '']);
+  const updateUrl = (i, val) => { const u = [...urls]; u[i] = val; onChange(u); };
+  const removeUrl = (i) => onChange(urls.filter((_, idx) => idx !== i));
 
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 200 * 1024 * 1024) { alert('Video must be under 200MB'); return; }
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('video', file);
-      const res = await fetch('/api/upload/video', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Upload failed');
-      onChange(data.url);
-    } catch (err) {
-      alert('Video upload failed: ' + err.message);
-    } finally {
-      setUploading(false);
-    }
+  const getYouTubeThumbnail = (url) => {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+    return match ? `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg` : null;
   };
 
   return (
     <div className="space-y-3">
-      {/* Upload button */}
-      <label className={`flex items-center gap-3 cursor-pointer border-2 border-dashed rounded-xl p-4 transition ${uploading ? 'opacity-60 pointer-events-none border-gray-200' : 'border-blue-200 hover:border-blue-400 bg-blue-50/30'}`}>
-        <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-          {uploading
-            ? <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            : <MdPlayCircle className="text-2xl text-blue-500" />}
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-blue-600">{uploading ? 'Uploading�' : value ? 'Change Video' : 'Upload Video'}</p>
-          <p className="text-xs text-gray-400 mt-0.5">MP4, MOV, AVI � max 200MB</p>
-        </div>
-        <input type="file" accept="video/*" className="hidden" onChange={handleFile} />
-      </label>
-
-      {/* Preview / URL */}
-      {value && !uploading && (
-        <div className="border border-blue-200 rounded-xl p-3 bg-blue-50/20 space-y-2">
-          <video src={value} controls className="w-full rounded-lg max-h-48" />
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-500 truncate flex-1 mr-2">{value}</p>
-            <button type="button" onClick={() => onChange('')} className="text-xs text-red-400 hover:text-red-600 font-semibold shrink-0">Remove</button>
+      {urls.map((url, i) => (
+        <div key={i} className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+              <MdPlayCircle className="text-red-500 text-lg" />
+            </div>
+            <input
+              className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#00aa59] transition"
+              placeholder="https://www.youtube.com/watch?v=..."
+              value={url}
+              onChange={e => updateUrl(i, e.target.value)}
+            />
+            <button type="button" onClick={() => removeUrl(i)}
+              className="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition shrink-0">
+              <MdClose className="text-base" />
+            </button>
           </div>
+          {url && getYouTubeThumbnail(url) && (
+            <div className="ml-10 flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-200">
+              <img src={getYouTubeThumbnail(url)} alt="thumbnail" className="w-20 h-14 rounded-lg object-cover" />
+              <a href={url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline truncate flex-1">{url}</a>
+            </div>
+          )}
         </div>
-      )}
+      ))}
+      <button type="button" onClick={addUrl}
+        className="flex items-center gap-2 text-sm font-semibold text-[#00aa59] hover:text-[#008f4a] transition">
+        <MdAdd className="text-lg" /> Add YouTube URL
+      </button>
     </div>
   );
 };
@@ -1981,7 +1986,8 @@ const LearnDetailsTab = () => {
     return matchSubject && matchGrade && matchLevel;
   });
 
-  const emptyForm = { subjectId: '', topicId: '', level: 'Basic', grade: '', overview: '', keyConcepts: '', practicalApplication: '', supportingLearning: '', videoUrl: '' };
+  const emptySection = () => ({ title: '', subtitle: '', description: '', points: [''] });
+  const emptyForm = { subjectId: '', topicId: '', level: 'Basic', grade: '', sections: [emptySection()], videoUrls: [] };
   const [form, setForm] = useState(emptyForm);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -1996,7 +2002,11 @@ const LearnDetailsTab = () => {
   const openAdd = () => { setEditing(null); setForm(emptyForm); setFormSubjectId(''); setFormGrade(''); setFormLevel('Basic'); setShowModal(true); };
   const openEdit = (item) => {
     setEditing(item);
-    setForm({ subjectId: item.subjectId, topicId: item.topicId, level: item.level || 'Basic', grade: item.grade || '', overview: item.overview || '', keyConcepts: item.keyConcepts || '', practicalApplication: item.practicalApplication || '', supportingLearning: item.supportingLearning || '', videoUrl: item.videoUrl || '' });
+    setForm({
+      subjectId: item.subjectId, topicId: item.topicId, level: item.level || 'Basic', grade: item.grade || '',
+      sections: item.sections?.length ? item.sections : [emptySection()],
+      videoUrls: item.videoUrls?.length ? item.videoUrls : (item.videoUrl ? [item.videoUrl] : []),
+    });
     setFormSubjectId(item.subjectId);
     setFormGrade(item.grade || '');
     setFormLevel(item.level || 'Basic');
@@ -2155,9 +2165,18 @@ const LearnDetailsTab = () => {
               {[['Overview', 'overview'], ['Key Concepts', 'keyConcepts'], ['Practical Application', 'practicalApplication'], ['Supporting Learning', 'supportingLearning']].map(([label, key]) => viewing[key] && (
                 <div key={key}><p className="text-xs font-bold text-gray-400 uppercase mb-1">{label}</p><p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{viewing[key]}</p></div>
               ))}
-              {viewing.videoUrl && (
-                <div><p className="text-xs font-bold text-gray-400 uppercase mb-2">Video</p>
-                  <a href={viewing.videoUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline"><MdPlayCircle className="text-xl text-blue-500" />{viewing.videoUrl}</a>
+              {(viewing.videoUrls?.length > 0 || viewing.videoUrl) && (
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase mb-2">YouTube Videos</p>
+                  <div className="space-y-2">
+                    {(viewing.videoUrls?.length ? viewing.videoUrls : (viewing.videoUrl ? [viewing.videoUrl] : [])).map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noreferrer"
+                        className="flex items-center gap-2 text-sm text-red-600 hover:underline">
+                        <MdPlayCircle className="text-xl text-red-500 shrink-0" />
+                        <span className="truncate">{url}</span>
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -2181,16 +2200,69 @@ const LearnDetailsTab = () => {
               {/* Dropdowns */}
               <SharedFields form={form} set={set} subjects={subjects} grades={grades} filteredTopics={filteredTopics} formSubjectId={formSubjectId} setFormSubjectId={setFormSubjectId} formGrade={formGrade} setFormGrade={setFormGrade} formLevel={formLevel} setFormLevel={setFormLevel} />
 
-              {/* Content fields */}
-              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Overview</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Overview of the topic�" value={form.overview} onChange={e => set('overview', e.target.value)} /></div>
-              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Key Concepts</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Key concepts to understand�" value={form.keyConcepts} onChange={e => set('keyConcepts', e.target.value)} /></div>
-              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Practical Application</label><textarea className={`${inp} resize-none`} rows={3} placeholder="How to apply in real life�" value={form.practicalApplication} onChange={e => set('practicalApplication', e.target.value)} /></div>
-              <div><label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Supporting Learning</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Additional resources or tips�" value={form.supportingLearning} onChange={e => set('supportingLearning', e.target.value)} /></div>
-
-              {/* Video Upload */}
+              {/* Sections */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Sections</label>
+                  <button type="button"
+                    onClick={() => set('sections', [...(form.sections || []), { title: '', subtitle: '', description: '', points: [''] }])}
+                    className="flex items-center gap-1 text-xs font-bold text-[#00aa59] hover:text-[#008f4a] transition">
+                    <MdAdd /> Add Section
+                  </button>
+                </div>
+                {(form.sections || []).map((sec, si) => (
+                  <div key={si} className="border-2 border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-500 uppercase">Section {si + 1}</span>
+                      {(form.sections || []).length > 1 && (
+                        <button type="button"
+                          onClick={() => set('sections', form.sections.filter((_, i) => i !== si))}
+                          className="text-xs text-red-400 hover:text-red-600 font-semibold flex items-center gap-1">
+                          <MdDelete className="text-sm" /> Remove
+                        </button>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">Title</label>
+                      <input className={inp} placeholder="Section title" value={sec.title || ''}
+                        onChange={e => { const s = [...form.sections]; s[si] = { ...s[si], title: e.target.value }; set('sections', s); }} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">Subtitle</label>
+                      <input className={inp} placeholder="Section subtitle (optional)" value={sec.subtitle || ''}
+                        onChange={e => { const s = [...form.sections]; s[si] = { ...s[si], subtitle: e.target.value }; set('sections', s); }} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">Description</label>
+                      <textarea className={`${inp} resize-none`} rows={3} placeholder="Section description" value={sec.description || ''}
+                        onChange={e => { const s = [...form.sections]; s[si] = { ...s[si], description: e.target.value }; set('sections', s); }} />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-semibold text-gray-500">Points</label>
+                        <button type="button"
+                          onClick={() => { const s = [...form.sections]; s[si] = { ...s[si], points: [...(s[si].points || []), ''] }; set('sections', s); }}
+                          className="text-xs text-[#00aa59] hover:text-[#008f4a] font-semibold">+ Add Point</button>
+                      </div>
+                      {(sec.points || []).map((pt, pi) => (
+                        <div key={pi} className="flex items-center gap-2 mb-2">
+                          <input className={`${inp} flex-1`} placeholder={`Point ${pi + 1}`} value={pt}
+                            onChange={e => { const s = [...form.sections]; const pts = [...s[si].points]; pts[pi] = e.target.value; s[si] = { ...s[si], points: pts }; set('sections', s); }} />
+                          {(sec.points || []).length > 1 && (
+                            <button type="button"
+                              onClick={() => { const s = [...form.sections]; s[si] = { ...s[si], points: s[si].points.filter((_, i) => i !== pi) }; set('sections', s); }}
+                              className="text-red-400 hover:text-red-600"><MdClose className="text-base" /></button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* YouTube Videos */}
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Video</label>
-                <VideoUploader value={form.videoUrl} onChange={v => set('videoUrl', v)} />
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">YouTube Videos</label>
+                <YouTubeUrlList urls={form.videoUrls || []} onChange={v => set('videoUrls', v)} />
               </div>
             </div>
             <div className="px-8 py-4 bg-gray-50 border-t flex items-center justify-between shrink-0">
