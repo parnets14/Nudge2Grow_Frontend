@@ -4,7 +4,7 @@ import axios from "axios";
 import { api } from "../../api";
 import { MDI_ICONS } from "../../data/mdiIconNames";
 
-const API_URL = "https://nudgebackend.onrender.com/api/featured-content";
+const API_URL = "https://nudge2grow.com/api/featured-content";
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#00bf62] transition";
 
 // Popular React Native Icons for Featured Content (Educational & Learning themed)
@@ -59,7 +59,7 @@ const ViewModal = ({ item, onClose }) => {
   useEffect(() => {
     // Fetch detail data
     if (item && item._id) {
-      axios.get(`https://nudgebackend.onrender.com/api/featured-content-detail/${item._id}`)
+      axios.get(`https://nudge2grow.com/api/featured-content-detail/${item._id}`)
         .then(response => {
           if (response.data && !response.data.message) {
             setDetailData(response.data);
@@ -664,7 +664,7 @@ const FeaturedContentManagement = () => {
           sections: cleanedSections
         };
         
-        await axios.post(`https://nudgebackend.onrender.com/api/featured-content-detail/${savedItem._id}`, detailData);
+        await axios.post(`https://nudge2grow.com/api/featured-content-detail/${savedItem._id}`, detailData);
       }
 
       setModalOpen(false);
@@ -684,7 +684,7 @@ const FeaturedContentManagement = () => {
       await axios.delete(`${API_URL}/${id}`);
       // Also delete associated detail if exists
       try {
-        await axios.delete(`https://nudgebackend.onrender.com/api/featured-content-detail/${id}`);
+        await axios.delete(`https://nudge2grow.com/api/featured-content-detail/${id}`);
       } catch (err) {
         // Detail might not exist, ignore error
       }
@@ -697,7 +697,7 @@ const FeaturedContentManagement = () => {
   const handleEdit = async (item) => {
     // Load detail data if exists
     try {
-      const response = await axios.get(`https://nudgebackend.onrender.com/api/featured-content-detail/${item._id}`);
+      const response = await axios.get(`https://nudge2grow.com/api/featured-content-detail/${item._id}`);
       if (response.data && !response.data.message && response.data.sections && response.data.sections.length > 0) {
         setEditItem({
           ...item,

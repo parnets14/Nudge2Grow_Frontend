@@ -3,7 +3,7 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdVisibility, MdFileUpload, MdDownload, MdQuiz, MdArrowBack, MdArrowForward } from "react-icons/md";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nudgebackend.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nudge2grow.com/api';
 
 const inp = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#00bf62] transition";
 

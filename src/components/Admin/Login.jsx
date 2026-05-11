@@ -12,6 +12,7 @@ function Login() {
   const navigate = useNavigate();
 
   if (localStorage.getItem('token')) {
+    // Only redirect if token actually exists — backend will verify it via ProtectedRoute
     return <Navigate to="/admin/grade" replace />;
   }
 

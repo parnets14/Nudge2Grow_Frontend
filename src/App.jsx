@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './components/Admin/Login'
 import Dashboard from './components/Admin/Dashboard'
@@ -26,21 +27,74 @@ import AdminContactMessages from './components/HelpSupport/AdminContactMessages'
 import AdminSupportInfo from './components/HelpSupport/AdminSupportInfo'
 import AdminCustomerRatings from './components/Settings/AdminCustomerRatings'
 
+// Public Pages
+import PrivacyPolicy from './components/Public/PrivacyPolicy'
+import TermsCondition from './components/Public/TermsCondition'
+
 // Quiz
 import QuestionTypes from './components/Quize/QuestionTypes'
 import QuizSettings from './components/Quize/QuizSettings'
 import QuizQuestions from './components/Quize/QuizQuestions'
 import QuizResults from './components/Quize/QuizResults'
 
+// Verifies the stored token against the backend on every page load.
+// Shows a blank screen while checking, then redirects to /login if invalid.
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" replace />;
+  const [status, setStatus] = useState('checking'); // 'checking' | 'ok' | 'denied'
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setStatus('denied');
+      return;
+    }
+
+    // Hit a protected endpoint — if the token is expired/invalid the backend
+    // returns 401 and the axios interceptor (api.js) clears localStorage.
+    // We do a plain fetch here so we don't depend on the axios instance.
+    fetch('/api/admin/profile', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (res.ok) {
+          setStatus('ok');
+        } else {
+          // Token invalid or expired — clear everything
+          localStorage.removeItem('token');
+          localStorage.removeItem('adminToken');
+          setStatus('denied');
+        }
+      })
+      .catch(() => {
+        // Network error — still allow access if token exists locally
+        // (avoids locking out admin when backend is temporarily unreachable)
+        setStatus('ok');
+      });
+  }, []);
+
+  if (status === 'checking') {
+    // Blank loading screen while verifying — no flash of protected content
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-[#00bf62] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-gray-400 font-medium">Verifying session…</p>
+        </div>
+      </div>
+    );
+  }
+
+  return status === 'ok' ? children : <Navigate to="/login" replace />;
 };
 
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Public pages — no auth required */}
+        <Route path="/privacypolicy" element={<PrivacyPolicy />} />
+        <Route path="/terms&condition" element={<TermsCondition />} />
+
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
           <Route index element={<Navigate to="grade" replace />} />

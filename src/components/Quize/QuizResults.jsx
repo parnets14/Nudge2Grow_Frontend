@@ -5,7 +5,7 @@ import {
   MdFilterList, MdCheckCircle,
 } from "react-icons/md";
 
-const API_BASE_URL = "https://nudgebackend.onrender.com/api";
+const API_BASE_URL = "https://nudge2grow.com/api";
 
 const getAdminToken = () =>
   localStorage.getItem("adminToken") || localStorage.getItem("token");

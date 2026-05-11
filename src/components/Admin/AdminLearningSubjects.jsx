@@ -45,7 +45,7 @@ const TABS = [
 ];
 
 const makeEmptyTopic     = () => ({ title: "", type: "Activity", description: "", videoUrl: "" });
-const makeEmptyFlashcard = () => ({ id: "", title: "", concept: "", parentOutcome: "", section2Title: "", section2: "" });
+const makeEmptyFlashcard = () => ({ id: "", badge: "", title: "", concept: "", parentOutcome: "", section2Title: "", section2: "" });
 const makeEmptyQA        = () => ({ id: "", question: "", answer: "" });
 const makeEmptyPrompt    = () => ({ id: "", prompt: "", hint: "" });
 
@@ -404,14 +404,9 @@ const AddSubjectModal = ({ editing, saving, onClose, onSave }) => {
       const res = await fetch('/api/upload/image', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Upload failed');
-      
-      // Extract just the path from the full URL (e.g., /uploads/filename.png)
-      let imagePath = data.url;
-      if (imagePath.includes('/uploads/')) {
-        imagePath = imagePath.substring(imagePath.indexOf('/uploads/'));
-      }
-      
-      set("imageUrl", imagePath);
+
+      // Store the full URL so it works regardless of environment
+      set("imageUrl", data.url);
     } catch (err) {
       alert("Image upload failed: " + err.message);
     } finally {
@@ -1535,25 +1530,25 @@ const ContentTab = ({ apiKey, columns, renderForm, emptyLabel }) => {
 };
 
 // -- Shared form fields (Subject, Topic, Level, Grade) -------------------------
-const SharedFields = ({ form, set, subjects, grades, filteredTopics, formSubjectId, setFormSubjectId, formGrade, setFormGrade, formLevel, setFormLevel }) => (
+const SharedFields = ({ form, set, subjects, grades, filteredTopics, formSubjectId, setFormSubjectId, formGrade, setFormGrade, formLevel, setFormLevel, isEditing }) => (
   <>
     <div>
       <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Grade</label>
-      <select className={inp} value={form.grade} onChange={e => { set('grade', e.target.value); setFormGrade(e.target.value); set('topicId', ''); }}>
+      <select className={inp} value={form.grade} onChange={e => { set('grade', e.target.value); setFormGrade(e.target.value); if (!isEditing) set('topicId', ''); }}>
         <option value="">Select Grade</option>
         {grades.map(g => <option key={g._id} value={g.title}>{g.title}</option>)}
       </select>
     </div>
     <div>
       <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Subject Name *</label>
-      <select className={inp} value={form.subjectId} onChange={e => { set('subjectId', e.target.value); setFormSubjectId(e.target.value); set('topicId', ''); }}>
+      <select className={inp} value={form.subjectId} onChange={e => { set('subjectId', e.target.value); setFormSubjectId(e.target.value); if (!isEditing) set('topicId', ''); }}>
         <option value="">Select Subject</option>
         {subjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
       </select>
     </div>
     <div>
       <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Level *</label>
-      <select className={inp} value={form.level} onChange={e => { set('level', e.target.value); setFormLevel(e.target.value); set('topicId', ''); }}>
+      <select className={inp} value={form.level} onChange={e => { set('level', e.target.value); setFormLevel(e.target.value); if (!isEditing) set('topicId', ''); }}>
         <option value="Basic">Basic</option>
         <option value="Intermediate">Intermediate</option>
         <option value="Advanced">Advanced</option>
@@ -1565,7 +1560,7 @@ const SharedFields = ({ form, set, subjects, grades, filteredTopics, formSubject
         <option value="">Select Topic</option>
         {filteredTopics.map(t => <option key={t._id} value={t._id}>{t.topic || t.title}</option>)}
       </select>
-      {form.subjectId && filteredTopics.length === 0 && (
+      {form.subjectId && filteredTopics.length === 0 && !isEditing && (
         <p className="mt-1.5 text-xs text-amber-600 flex items-center gap-1">
           ⚠️ No topics found for the selected Grade, Subject &amp; Level combination.
         </p>
@@ -1596,11 +1591,10 @@ const FlashcardsQAPromptsTab = () => {
     const matchGrade   = !formGrade   || t.grade === formGrade;
     const matchLevel   = !formLevel   || t.level === formLevel;
     if (!matchSubject || !matchGrade || !matchLevel) return false;
-    // Exclude topics already assigned to a content set (unless editing that set)
-    const alreadyUsed = sets.some(s =>
-      String(s.topicId) === String(t._id) &&
-      (!editing || String(s._id) !== String(editing._id))
-    );
+    // Always include the topic currently being edited
+    if (editing && String(t._id) === String(editing.topicId)) return true;
+    // Exclude topics already assigned to a content set
+    const alreadyUsed = sets.some(s => String(s.topicId) === String(t._id));
     return !alreadyUsed;
   });
 
@@ -1620,9 +1614,9 @@ const FlashcardsQAPromptsTab = () => {
 
   const resetForm = () => {
     setForm({ subjectId: '', topicId: '', level: 'Basic', grade: '' });
-    setFcCards([{ title: '', description: '', subtitle: '', subdescription: '' }]);
-    setQaList([{ question: '', answer: '' }]);
-    setPromptList([{ prompt: '', hint: '' }]);
+    setFcCards([{ content: '', title: '', description: '', subtitle: '', subdescription: '' }]);
+    setQaList([{ content: '', question: '', answer: '' }]);
+    setPromptList([{ content: '', prompt: '', hint: '' }]);
     setFormSubjectId('');
     setFormGrade('');
     setFormLevel('Basic');
@@ -1631,31 +1625,88 @@ const FlashcardsQAPromptsTab = () => {
 
   const openEdit = (s) => {
     setEditing(s);
-    setForm({ subjectId: s.subjectId, topicId: s.topicId, level: s.level, grade: s.grade || '' });
-    setFormSubjectId(s.subjectId);
-    setFormGrade(s.grade || '');
-    setFormLevel(s.level || 'Basic');
-    setFcCards(s.flashcards?.length ? s.flashcards : [{ title: '', description: '', subtitle: '', subdescription: '' }]);
-    setQaList(s.qaCards?.length ? s.qaCards : [{ question: '', answer: '' }]);
-    setPromptList(s.prompts?.length ? s.prompts : [{ prompt: '', hint: '' }]);
+    // Set all form state synchronously
+    const subjectId = s.subjectId || '';
+    const topicId   = s.topicId   || '';
+    const level     = s.level     || 'Basic';
+    const grade     = s.grade     || '';
+    setForm({ subjectId, topicId, level, grade });
+    setFormSubjectId(subjectId);
+    setFormGrade(grade);
+    setFormLevel(level);
+    setFcCards(s.flashcards?.length
+      ? s.flashcards.map(c => {
+          // Always clean "badge|title" separator from title field
+          let badge = c.content || '';
+          let title = c.title || '';
+          // Remove badge prefix from title if present
+          if (title.includes('|')) {
+            title = title.split('|').slice(1).join('|').trim();
+          }
+          return {
+            content:        badge,
+            title:          title,
+            description:    c.description    || '',
+            subtitle:       c.subtitle       || '',
+            subdescription: c.subdescription || '',
+          };
+        })
+      : [{ content: '', title: '', description: '', subtitle: '', subdescription: '' }]);
+    setQaList(s.qaCards?.length
+      ? s.qaCards.map(q => ({ content: q.content || '', question: q.question || '', answer: q.answer || '' }))
+      : [{ content: '', question: '', answer: '' }]);
+    setPromptList(s.prompts?.length
+      ? s.prompts.map(p => ({ content: p.content || '', prompt: p.prompt || '', hint: p.hint || '' }))
+      : [{ content: '', prompt: '', hint: '' }]);
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.subjectId || !form.topicId) return;
+    if (!form.subjectId || !form.topicId) {
+      alert(`Missing required fields:\nsubjectId: ${form.subjectId || 'EMPTY'}\ntopicId: ${form.topicId || 'EMPTY'}`);
+      return;
+    }
+    if (editing && !editing._id) {
+      alert('Error: editing record has no _id. Please close and try again.');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
-        ...form,
-        flashcards: fcCards.filter(c => c.title?.trim()),
-        qaCards:    qaList.filter(q => q.question?.trim()),
-        prompts:    promptList.filter(p => p.prompt?.trim()),
+        subjectId: form.subjectId,
+        topicId:   form.topicId,
+        level:     form.level,
+        grade:     form.grade,
+        // Keep card if ANY field has content
+        flashcards: fcCards.filter(c =>
+          c.content?.trim() || c.title?.trim() || c.description?.trim() ||
+          c.subtitle?.trim() || c.subdescription?.trim()
+        ),
+        qaCards: qaList.filter(q =>
+          q.content?.trim() || q.question?.trim() || q.answer?.trim()
+        ),
+        prompts: promptList.filter(p =>
+          p.content?.trim() || p.prompt?.trim() || p.hint?.trim()
+        ),
       };
-      if (editing) await api.contentSets.update(editing._id, payload);
-      else await api.contentSets.create(payload);
-      setShowModal(false); resetForm(); await load();
-    } catch (e) { alert('Failed to save'); }
-    finally { setSaving(false); }
+      console.log('[Save] editing._id:', editing?._id);
+      console.log('[Save] payload flashcards count:', payload.flashcards.length);
+      if (editing) {
+        const result = await api.contentSets.update(editing._id, payload);
+        console.log('[Save] update result:', result);
+      } else {
+        const result = await api.contentSets.create(payload);
+        console.log('[Save] create result:', result);
+      }
+      setShowModal(false);
+      resetForm();
+      await load();
+    } catch (e) {
+      console.error('[Save] error:', e);
+      alert('Failed to save: ' + (e.response?.data?.message || e.message || 'Unknown error'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -1810,9 +1861,10 @@ const FlashcardsQAPromptsTab = () => {
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Grade</p><p className="text-sm text-gray-700">{viewing.grade || '�'}</p></div>
               </div>
               {viewing.flashcards?.length > 0 && <div>
-                <p className="text-sm font-extrabold text-indigo-700 mb-3">?? Flashcards ({viewing.flashcards.length})</p>
+                <p className="text-sm font-extrabold text-indigo-700 mb-3">📇 Flashcards ({viewing.flashcards.length})</p>
                 <div className="space-y-2">{viewing.flashcards.map((fc, i) => (
                   <div key={i} className="border border-indigo-100 rounded-xl p-3 bg-indigo-50/30 space-y-1">
+                    {fc.content && <span className="inline-block text-xs font-bold bg-[#E8E5FF] text-[#6B5DD3] px-2 py-0.5 rounded mb-1">{fc.content}</span>}
                     <p className="text-xs font-bold text-gray-500">#{i+1} {fc.title}</p>
                     {fc.description && <p className="text-xs text-gray-600">{fc.description}</p>}
                     {fc.subtitle && <p className="text-xs font-semibold text-gray-700 mt-1">{fc.subtitle}</p>}
@@ -1821,18 +1873,20 @@ const FlashcardsQAPromptsTab = () => {
                 ))}</div>
               </div>}
               {viewing.qaCards?.length > 0 && <div>
-                <p className="text-sm font-extrabold text-blue-700 mb-3">? Q&A ({viewing.qaCards.length})</p>
+                <p className="text-sm font-extrabold text-blue-700 mb-3">❓ Q&A ({viewing.qaCards.length})</p>
                 <div className="space-y-2">{viewing.qaCards.map((qa, i) => (
                   <div key={i} className="border border-blue-100 rounded-xl p-3 bg-blue-50/30 space-y-1">
+                    {qa.content && <span className="inline-block text-xs font-bold bg-[#CCEFEF] text-[#2A9D9D] px-2 py-0.5 rounded mb-1">{qa.content}</span>}
                     <p className="text-xs font-bold text-gray-700">Q: {qa.question}</p>
                     {qa.answer && <p className="text-xs text-gray-600">A: {qa.answer}</p>}
                   </div>
                 ))}</div>
               </div>}
               {viewing.prompts?.length > 0 && <div>
-                <p className="text-sm font-extrabold text-amber-700 mb-3">?? Prompts ({viewing.prompts.length})</p>
+                <p className="text-sm font-extrabold text-amber-700 mb-3">💡 Prompts ({viewing.prompts.length})</p>
                 <div className="space-y-2">{viewing.prompts.map((pr, i) => (
                   <div key={i} className="border border-amber-100 rounded-xl p-3 bg-amber-50/30 space-y-1">
+                    {pr.content && <span className="inline-block text-xs font-bold bg-[#FEF3C7] text-[#D97706] px-2 py-0.5 rounded mb-1">{pr.content}</span>}
                     <p className="text-xs text-gray-700">{pr.prompt}</p>
                     {pr.hint && <p className="text-xs text-gray-500 italic">Hint: {pr.hint}</p>}
                   </div>
@@ -1856,49 +1910,130 @@ const FlashcardsQAPromptsTab = () => {
               <button onClick={() => { setShowModal(false); resetForm(); }} className="w-9 h-9 rounded-full hover:bg-white/20 flex items-center justify-center text-white"><MdClose className="text-xl" /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
-              <SharedFields form={form} set={set} subjects={subjectList} grades={grades} filteredTopics={filteredTopics} formSubjectId={formSubjectId} setFormSubjectId={setFormSubjectId} formGrade={formGrade} setFormGrade={setFormGrade} formLevel={formLevel} setFormLevel={setFormLevel} />
-              {/* Flashcards */}
+              <SharedFields form={form} set={set} subjects={subjectList} grades={grades} filteredTopics={filteredTopics} formSubjectId={formSubjectId} setFormSubjectId={setFormSubjectId} formGrade={formGrade} setFormGrade={setFormGrade} formLevel={formLevel} setFormLevel={setFormLevel} isEditing={!!editing} />
+
+              {/* ── Flashcards ── */}
               <div className="border-2 border-indigo-100 rounded-2xl p-5 space-y-4 bg-indigo-50/30">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-extrabold text-indigo-700">?? Flashcards ({fcCards.length})</p>
-                  <button type="button" onClick={() => setFcCards(l => [...l, { title: '', description: '', subtitle: '', subdescription: '' }])} className="flex items-center gap-1 text-xs font-bold bg-indigo-500 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-600"><MdAdd /> Add</button>
+                  <p className="text-sm font-extrabold text-indigo-700">📇 Flashcards ({fcCards.length})</p>
+                  <button type="button"
+                    onClick={() => setFcCards(l => [...l, { content: '', title: '', description: '', subtitle: '', subdescription: '' }])}
+                    className="flex items-center gap-1 text-xs font-bold bg-indigo-500 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-600">
+                    <MdAdd /> Add
+                  </button>
                 </div>
                 {fcCards.map((card, i) => (
-                  <div key={i} className="space-y-3 border border-indigo-200 rounded-xl p-3 relative">
-                    {fcCards.length > 1 && <button type="button" onClick={() => setFcCards(l => l.filter((_, idx) => idx !== i))} className="absolute top-2 right-2 text-red-400 hover:text-red-600"><MdDelete className="text-sm" /></button>}
-                    <span className="w-5 h-5 rounded-full bg-indigo-500 text-white text-xs font-bold flex items-center justify-center">{i + 1}</span>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title</label><input className={inp} placeholder="Title�" value={card.title} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Description</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Description�" value={card.description} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Subtitle</label><input className={inp} placeholder="Subtitle�" value={card.subtitle} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, subtitle: e.target.value } : x))} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Sub Description</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Sub description�" value={card.subdescription} onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, subdescription: e.target.value } : x))} /></div>
+                  <div key={i} className="space-y-3 border border-indigo-200 rounded-xl p-4 relative bg-white">
+                    {fcCards.length > 1 && (
+                      <button type="button" onClick={() => setFcCards(l => l.filter((_, idx) => idx !== i))}
+                        className="absolute top-2 right-2 text-red-400 hover:text-red-600">
+                        <MdDelete className="text-sm" />
+                      </button>
+                    )}
+                    <span className="w-6 h-6 rounded-full bg-indigo-500 text-white text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Badge Text <span className="text-gray-400 font-normal normal-case">(purple label on card)</span></label>
+                      <input className={inp} placeholder="e.g. ABOUT, TIP, DID YOU KNOW" value={card.content || ''}
+                        onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, content: e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Title <span className="text-gray-400 font-normal normal-case">(bold heading on card)</span></label>
+                      <input className={inp} placeholder="e.g. Your Conversation Starter" value={card.title || ''}
+                        onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Description <span className="text-gray-400 font-normal normal-case">(body text below title)</span></label>
+                      <textarea className={`${inp} resize-none`} rows={4} placeholder="e.g. Why are car wheels cylinders instead of cubes?…" value={card.description || ''}
+                        onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Subtitle <span className="text-gray-400 font-normal normal-case">(bold section heading)</span></label>
+                      <input className={inp} placeholder="e.g. Helpful Way to Explain" value={card.subtitle || ''}
+                        onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, subtitle: e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Sub Description <span className="text-gray-400 font-normal normal-case">(section body text)</span></label>
+                      <textarea className={`${inp} resize-none`} rows={3} placeholder="e.g. Ask: Does it have a flat face?…" value={card.subdescription || ''}
+                        onChange={e => setFcCards(l => l.map((x, idx) => idx === i ? { ...x, subdescription: e.target.value } : x))} />
+                    </div>
                   </div>
                 ))}
               </div>
-              {/* Q&A */}
+
+              {/* ── Q&A ── */}
               <div className="border-2 border-blue-100 rounded-2xl p-5 space-y-4 bg-blue-50/30">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-extrabold text-blue-700">? Q&A ({qaList.length})</p>
-                  <button type="button" onClick={() => setQaList(l => [...l, { question: '', answer: '' }])} className="flex items-center gap-1 text-xs font-bold bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600"><MdAdd /> Add</button>
+                  <p className="text-sm font-extrabold text-blue-700">❓ Q&A ({qaList.length})</p>
+                  <button type="button"
+                    onClick={() => setQaList(l => [...l, { content: '', question: '', answer: '' }])}
+                    className="flex items-center gap-1 text-xs font-bold bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600">
+                    <MdAdd /> Add
+                  </button>
                 </div>
                 {qaList.map((it, i) => (
-                  <div key={i} className="space-y-3 border border-blue-200 rounded-xl p-3 relative">
-                    {qaList.length > 1 && <button type="button" onClick={() => setQaList(l => l.filter((_, idx) => idx !== i))} className="absolute top-2 right-2 text-red-400 hover:text-red-600"><MdDelete className="text-sm" /></button>}
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Question</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Question�" value={it.question} onChange={e => setQaList(l => l.map((x, idx) => idx === i ? { ...x, question: e.target.value } : x))} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Answer</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Answer�" value={it.answer} onChange={e => setQaList(l => l.map((x, idx) => idx === i ? { ...x, answer: e.target.value } : x))} /></div>
+                  <div key={i} className="space-y-3 border border-blue-200 rounded-xl p-4 relative bg-white">
+                    {qaList.length > 1 && (
+                      <button type="button" onClick={() => setQaList(l => l.filter((_, idx) => idx !== i))}
+                        className="absolute top-2 right-2 text-red-400 hover:text-red-600">
+                        <MdDelete className="text-sm" />
+                      </button>
+                    )}
+                    <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Badge Text <span className="text-gray-400 font-normal normal-case">(label shown on card e.g. QUESTION)</span></label>
+                      <input className={inp} placeholder="e.g. QUESTION, QUIZ, THINK"
+                        value={it.content || ''}
+                        onChange={e => setQaList(l => l.map((x, idx) => idx === i ? { ...x, content: e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Question</label>
+                      <textarea className={`${inp} resize-none`} rows={2} placeholder="Question…" value={it.question || ''}
+                        onChange={e => setQaList(l => l.map((x, idx) => idx === i ? { ...x, question: e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Answer</label>
+                      <textarea className={`${inp} resize-none`} rows={2} placeholder="Answer…" value={it.answer || ''}
+                        onChange={e => setQaList(l => l.map((x, idx) => idx === i ? { ...x, answer: e.target.value } : x))} />
+                    </div>
                   </div>
                 ))}
               </div>
-              {/* Prompts */}
+
+              {/* ── Prompts ── */}
               <div className="border-2 border-amber-100 rounded-2xl p-5 space-y-4 bg-amber-50/30">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-extrabold text-amber-700">?? Prompts ({promptList.length})</p>
-                  <button type="button" onClick={() => setPromptList(l => [...l, { prompt: '', hint: '' }])} className="flex items-center gap-1 text-xs font-bold bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600"><MdAdd /> Add</button>
+                  <p className="text-sm font-extrabold text-amber-700">💡 Prompts ({promptList.length})</p>
+                  <button type="button"
+                    onClick={() => setPromptList(l => [...l, { content: '', prompt: '', hint: '' }])}
+                    className="flex items-center gap-1 text-xs font-bold bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600">
+                    <MdAdd /> Add
+                  </button>
                 </div>
                 {promptList.map((it, i) => (
-                  <div key={i} className="space-y-3 border border-amber-200 rounded-xl p-3 relative">
-                    {promptList.length > 1 && <button type="button" onClick={() => setPromptList(l => l.filter((_, idx) => idx !== i))} className="absolute top-2 right-2 text-red-400 hover:text-red-600"><MdDelete className="text-sm" /></button>}
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Prompt</label><textarea className={`${inp} resize-none`} rows={3} placeholder="Prompt�" value={it.prompt} onChange={e => setPromptList(l => l.map((x, idx) => idx === i ? { ...x, prompt: e.target.value } : x))} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Hint</label><textarea className={`${inp} resize-none`} rows={2} placeholder="Hint�" value={it.hint} onChange={e => setPromptList(l => l.map((x, idx) => idx === i ? { ...x, hint: e.target.value } : x))} /></div>
+                  <div key={i} className="space-y-3 border border-amber-200 rounded-xl p-4 relative bg-white">
+                    {promptList.length > 1 && (
+                      <button type="button" onClick={() => setPromptList(l => l.filter((_, idx) => idx !== i))}
+                        className="absolute top-2 right-2 text-red-400 hover:text-red-600">
+                        <MdDelete className="text-sm" />
+                      </button>
+                    )}
+                    <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Badge Text <span className="text-gray-400 font-normal normal-case">(label shown on card e.g. PROMPT)</span></label>
+                      <input className={inp} placeholder="e.g. PROMPT, ACTIVITY, TRY THIS"
+                        value={it.content || ''}
+                        onChange={e => setPromptList(l => l.map((x, idx) => idx === i ? { ...x, content: e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Prompt</label>
+                      <textarea className={`${inp} resize-none`} rows={3} placeholder="Prompt…" value={it.prompt || ''}
+                        onChange={e => setPromptList(l => l.map((x, idx) => idx === i ? { ...x, prompt: e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Hint</label>
+                      <textarea className={`${inp} resize-none`} rows={2} placeholder="Hint…" value={it.hint || ''}
+                        onChange={e => setPromptList(l => l.map((x, idx) => idx === i ? { ...x, hint: e.target.value } : x))} />
+                    </div>
                   </div>
                 ))}
               </div>

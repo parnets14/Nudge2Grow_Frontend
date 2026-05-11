@@ -200,9 +200,20 @@ const TabSubjects = () => {
 // TAB 2 — Topics
 // ═══════════════════════════════════════════════════════════════════════════════
 const TopicModal = ({ entry, onSave, onClose, saving, subjects, grades }) => {
-  const [form, setForm] = useState(entry || { subjectId: "", topic: "", title: "", description: "", imageUrl: "", grade: "", scheduledDate: "" });
+  // Format ISO date string to YYYY-MM-DD for the date input
+  const toDateInput = (val) => {
+    if (!val) return "";
+    const d = new Date(val);
+    if (isNaN(d)) return "";
+    return d.toISOString().slice(0, 10);
+  };
+
+  const [form, setForm] = useState(entry
+    ? { ...entry, scheduledDate: toDateInput(entry.scheduledDate) }
+    : { subjectId: "", topic: "", title: "", description: "", imageUrl: "", grade: "", scheduledDate: "" }
+  );
   const [uploading, setUploading] = useState(false);
-  const valid = form.subjectId && form.topic && form.scheduledDate;
+  const valid = form.subjectId && form.topic && form.scheduledDate && form.grade;
 
   const handleImage = async (e) => {
     const file = e.target.files?.[0];
@@ -214,9 +225,8 @@ const TopicModal = ({ entry, onSave, onClose, saving, subjects, grades }) => {
       const res = await fetch("/api/upload/image", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Upload failed");
-      let imagePath = data.url;
-      if (imagePath.includes("/uploads/")) imagePath = imagePath.substring(imagePath.indexOf("/uploads/"));
-      setForm(p => ({ ...p, imageUrl: imagePath }));
+      // Store the full URL so it works regardless of environment
+      setForm(p => ({ ...p, imageUrl: data.url }));
     } catch (err) { alert("Image upload failed: " + err.message); } finally { setUploading(false); }
   };
 
@@ -268,7 +278,7 @@ const TopicModal = ({ entry, onSave, onClose, saving, subjects, grades }) => {
             )}
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Grade</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Grade <span className="text-red-500">*</span></label>
             <select className={selCls} value={form.grade || ""} onChange={e => setForm(p => ({ ...p, grade: e.target.value }))}>
               <option value="">Select Grade</option>
               {grades.map(g => <option key={g._id} value={g.title}>{g.title}</option>)}
@@ -453,25 +463,63 @@ const TabTopics = () => {
 // TAB 3 — Flashcards (Beyond School Content Sets)
 // ═══════════════════════════════════════════════════════════════════════════════
 const BeyondSchoolContentSetModal = ({ entry, onSave, onClose, saving, subjects, grades }) => {
-  const emptyFC     = () => ({ title: "", description: "", subtitle: "", subdescription: "" });
-  const emptyQA     = () => ({ question: "", answer: "" });
-  const emptyPrompt = () => ({ prompt: "", hint: "" });
+  const emptyFC     = () => ({ content: "", title: "", description: "", subtitle: "", subdescription: "" });
+  const emptyQA     = () => ({ content: "", question: "", answer: "" });
+  const emptyPrompt = () => ({ content: "", prompt: "", hint: "" });
 
   const [form, setForm] = useState({
     subjectId:  entry?.subjectId  || "",
     topicId:    entry?.topicId    || "",
     grade:      entry?.grade      || "",
-    flashcards: entry?.flashcards?.length ? entry.flashcards : [emptyFC()],
-    qaCards:    entry?.qaCards?.length    ? entry.qaCards    : [emptyQA()],
-    prompts:    entry?.prompts?.length    ? entry.prompts    : [emptyPrompt()],
+    flashcards: entry?.flashcards?.length
+      ? entry.flashcards.map(f => ({
+          content:        f.content        || "",
+          title:          f.title          || "",
+          description:    f.description    || "",
+          subtitle:       f.subtitle       || "",
+          subdescription: f.subdescription || "",
+        }))
+      : [],
+    qaCards: entry?.qaCards?.length
+      ? entry.qaCards.map(q => ({
+          content:  q.content  || "",
+          question: q.question || "",
+          answer:   q.answer   || "",
+        }))
+      : [],
+    prompts: entry?.prompts?.length
+      ? entry.prompts.map(p => ({
+          content: p.content || "",
+          prompt:  p.prompt  || "",
+          hint:    p.hint    || "",
+        }))
+      : [],
   });
   const [topics, setTopics] = useState([]);
+  const [existingTopicIds, setExistingTopicIds] = useState(new Set());
+
   useEffect(() => {
     if (form.subjectId) {
-      api.beyondSchoolTopics.getAll()
-        .then(d => setTopics((Array.isArray(d) ? d : []).filter(t => String(t.subjectId) === String(form.subjectId))))
-        .catch(() => {});
-    } else { setTopics([]); }
+      Promise.all([
+        api.beyondSchoolTopics.getAll().catch(() => []),
+        api.beyondSchoolContentSets.getAll().catch(() => []),
+      ]).then(([allTopics, allSets]) => {
+        const subjectTopics = (Array.isArray(allTopics) ? allTopics : [])
+          .filter(t => String(t.subjectId) === String(form.subjectId));
+        setTopics(subjectTopics);
+
+        // Topics that already have a content set — exclude current entry when editing
+        const usedIds = new Set(
+          (Array.isArray(allSets) ? allSets : [])
+            .filter(s => !entry || String(s.topicId) !== String(entry.topicId))
+            .map(s => String(s.topicId))
+        );
+        setExistingTopicIds(usedIds);
+      });
+    } else {
+      setTopics([]);
+      setExistingTopicIds(new Set());
+    }
   }, [form.subjectId]);
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -498,14 +546,27 @@ const BeyondSchoolContentSetModal = ({ entry, onSave, onClose, saving, subjects,
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Topic <span className="text-red-500">*</span></label>
-              <select className={selCls} value={form.topicId} onChange={e => set("topicId", e.target.value)}>
+              <select className={selCls} value={form.topicId} onChange={e => set("topicId", e.target.value)}
+                disabled={!form.subjectId || !form.grade}>
                 <option value="">Select Topic</option>
-                {topics.map(t => <option key={t._id} value={t._id}>{t.topic || t.title}</option>)}
+                {topics
+                  .filter(t => !existingTopicIds.has(String(t._id)))
+                  .filter(t => form.grade && t.grade === form.grade)
+                  .map(t => <option key={t._id} value={t._id}>{t.topic || t.title}</option>)}
               </select>
+              {!form.subjectId && (
+                <p className="mt-1 text-xs text-amber-500 font-medium">⬆ Select a subject first</p>
+              )}
+              {form.subjectId && !form.grade && (
+                <p className="mt-1 text-xs text-amber-500 font-medium">⬆ Select a grade to see available topics</p>
+              )}
+              {form.subjectId && form.grade && topics.filter(t => !existingTopicIds.has(String(t._id)) && t.grade === form.grade).length === 0 && (
+                <p className="mt-1 text-xs text-gray-400 font-medium">No available topics for this subject &amp; grade</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Grade</label>
-              <select className={selCls} value={form.grade} onChange={e => set("grade", e.target.value)}>
+              <select className={selCls} value={form.grade} onChange={e => { set("grade", e.target.value); set("topicId", ""); }}>
                 <option value="">Select Grade</option>
                 {grades.map(g => <option key={g._id} value={g.title}>{g.title}</option>)}
               </select>
@@ -517,9 +578,13 @@ const BeyondSchoolContentSetModal = ({ entry, onSave, onClose, saving, subjects,
               <label className="text-xs font-bold text-gray-500 uppercase">Flashcards</label>
               <button type="button" onClick={() => addItem("flashcards", emptyFC)} className="text-xs text-[#00aa59] font-bold hover:underline">+ Add</button>
             </div>
+            {form.flashcards.length === 0 && (
+              <p className="text-xs text-gray-400 italic px-1 mb-2">No flashcards added. Click + Add to create one.</p>
+            )}
             {form.flashcards.map((fc, i) => (
               <div key={i} className="border border-gray-200 rounded-xl p-3 mb-2 space-y-2 bg-gray-50">
-                <div className="flex justify-between items-center"><span className="text-xs font-semibold text-gray-500">Card {i + 1}</span>{form.flashcards.length > 1 && <button type="button" onClick={() => removeItem("flashcards", i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>}</div>
+                <div className="flex justify-between items-center"><span className="text-xs font-semibold text-gray-500">Card {i + 1}</span><button type="button" onClick={() => removeItem("flashcards", i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button></div>
+                <input className={inp} placeholder="Badge Text (e.g. ABOUT, TIP)" value={fc.content || ""} onChange={e => updateItem("flashcards", i, "content", e.target.value)} />
                 <input className={inp} placeholder="Title" value={fc.title} onChange={e => updateItem("flashcards", i, "title", e.target.value)} />
                 <textarea className={`${inp} resize-none`} rows={2} placeholder="Description" value={fc.description} onChange={e => updateItem("flashcards", i, "description", e.target.value)} />
                 <input className={inp} placeholder="Subtitle (optional)" value={fc.subtitle || ""} onChange={e => updateItem("flashcards", i, "subtitle", e.target.value)} />
@@ -533,9 +598,13 @@ const BeyondSchoolContentSetModal = ({ entry, onSave, onClose, saving, subjects,
               <label className="text-xs font-bold text-gray-500 uppercase">Q&A Cards</label>
               <button type="button" onClick={() => addItem("qaCards", emptyQA)} className="text-xs text-[#00aa59] font-bold hover:underline">+ Add</button>
             </div>
+            {form.qaCards.length === 0 && (
+              <p className="text-xs text-gray-400 italic px-1 mb-2">No Q&A cards added. Click + Add to create one.</p>
+            )}
             {form.qaCards.map((qa, i) => (
               <div key={i} className="border border-gray-200 rounded-xl p-3 mb-2 space-y-2 bg-gray-50">
-                <div className="flex justify-between items-center"><span className="text-xs font-semibold text-gray-500">Q&A {i + 1}</span>{form.qaCards.length > 1 && <button type="button" onClick={() => removeItem("qaCards", i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>}</div>
+                <div className="flex justify-between items-center"><span className="text-xs font-semibold text-gray-500">Q&A {i + 1}</span><button type="button" onClick={() => removeItem("qaCards", i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button></div>
+                <input className={inp} placeholder="Badge Text (e.g. QUESTION, QUIZ)" value={qa.content || ""} onChange={e => updateItem("qaCards", i, "content", e.target.value)} />
                 <input className={inp} placeholder="Question" value={qa.question} onChange={e => updateItem("qaCards", i, "question", e.target.value)} />
                 <textarea className={`${inp} resize-none`} rows={2} placeholder="Answer" value={qa.answer} onChange={e => updateItem("qaCards", i, "answer", e.target.value)} />
               </div>
@@ -547,9 +616,13 @@ const BeyondSchoolContentSetModal = ({ entry, onSave, onClose, saving, subjects,
               <label className="text-xs font-bold text-gray-500 uppercase">Prompts</label>
               <button type="button" onClick={() => addItem("prompts", emptyPrompt)} className="text-xs text-[#00aa59] font-bold hover:underline">+ Add</button>
             </div>
+            {form.prompts.length === 0 && (
+              <p className="text-xs text-gray-400 italic px-1 mb-2">No prompts added. Click + Add to create one.</p>
+            )}
             {form.prompts.map((p, i) => (
               <div key={i} className="border border-gray-200 rounded-xl p-3 mb-2 space-y-2 bg-gray-50">
-                <div className="flex justify-between items-center"><span className="text-xs font-semibold text-gray-500">Prompt {i + 1}</span>{form.prompts.length > 1 && <button type="button" onClick={() => removeItem("prompts", i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>}</div>
+                <div className="flex justify-between items-center"><span className="text-xs font-semibold text-gray-500">Prompt {i + 1}</span><button type="button" onClick={() => removeItem("prompts", i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button></div>
+                <input className={inp} placeholder="Badge Text (e.g. PROMPT, TRY THIS)" value={p.content || ""} onChange={e => updateItem("prompts", i, "content", e.target.value)} />
                 <textarea className={`${inp} resize-none`} rows={2} placeholder="Prompt text" value={p.prompt} onChange={e => updateItem("prompts", i, "prompt", e.target.value)} />
                 <input className={inp} placeholder="Hint (optional)" value={p.hint || ""} onChange={e => updateItem("prompts", i, "hint", e.target.value)} />
               </div>
@@ -676,9 +749,44 @@ const TabFlashcards = () => {
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Topic</p><p className="text-sm font-semibold">{viewItem.topicTitle}</p></div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Grade</p><p className="text-sm">{viewItem.grade || "—"}</p></div>
               </div>
-              {viewItem.flashcards?.length > 0 && <div><p className="text-xs font-bold text-gray-400 uppercase mb-2">Flashcards ({viewItem.flashcards.length})</p>{viewItem.flashcards.map((f, i) => <div key={i} className="bg-gray-50 rounded-xl p-3 mb-2"><p className="font-semibold text-sm">{f.title}</p><p className="text-xs text-gray-500 mt-1">{f.description}</p></div>)}</div>}
-              {viewItem.qaCards?.length > 0 && <div><p className="text-xs font-bold text-gray-400 uppercase mb-2">Q&A ({viewItem.qaCards.length})</p>{viewItem.qaCards.map((q, i) => <div key={i} className="bg-gray-50 rounded-xl p-3 mb-2"><p className="font-semibold text-sm">Q: {q.question}</p><p className="text-xs text-gray-500 mt-1">A: {q.answer}</p></div>)}</div>}
-              {viewItem.prompts?.length > 0 && <div><p className="text-xs font-bold text-gray-400 uppercase mb-2">Prompts ({viewItem.prompts.length})</p>{viewItem.prompts.map((p, i) => <div key={i} className="bg-gray-50 rounded-xl p-3 mb-2"><p className="text-sm">{p.prompt}</p></div>)}</div>}
+              {viewItem.flashcards?.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase mb-2">Flashcards ({viewItem.flashcards.length})</p>
+                  {viewItem.flashcards.map((f, i) => (
+                    <div key={i} className="bg-gray-50 rounded-xl p-3 mb-2">
+                      {f.content && <span className="inline-block bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full mb-1">{f.content}</span>}
+                      <p className="font-semibold text-sm">{f.title}</p>
+                      {f.description && <p className="text-xs text-gray-500 mt-1">{f.description}</p>}
+                      {f.subtitle && <p className="text-xs font-bold text-gray-700 mt-1">{f.subtitle}</p>}
+                      {f.subdescription && <p className="text-xs text-gray-500 mt-0.5">{f.subdescription}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {viewItem.qaCards?.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase mb-2">Q&A ({viewItem.qaCards.length})</p>
+                  {viewItem.qaCards.map((q, i) => (
+                    <div key={i} className="bg-gray-50 rounded-xl p-3 mb-2">
+                      {q.content && <span className="inline-block bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full mb-1">{q.content}</span>}
+                      <p className="font-semibold text-sm">Q: {q.question}</p>
+                      <p className="text-xs text-gray-500 mt-1">A: {q.answer}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {viewItem.prompts?.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase mb-2">Prompts ({viewItem.prompts.length})</p>
+                  {viewItem.prompts.map((p, i) => (
+                    <div key={i} className="bg-gray-50 rounded-xl p-3 mb-2">
+                      {p.content && <span className="inline-block bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full mb-1">{p.content}</span>}
+                      <p className="text-sm">{p.prompt}</p>
+                      {p.hint && <p className="text-xs text-gray-400 mt-1">Hint: {p.hint}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="px-7 py-4 bg-gray-50 border-t flex justify-between shrink-0">
               <button onClick={() => { setViewItem(null); setEditItem(viewItem); setModalOpen(true); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 text-white text-sm font-bold hover:bg-blue-600"><MdEdit /> Edit</button>
@@ -707,12 +815,30 @@ const BeyondSchoolLearnDetailModal = ({ entry, onSave, onClose, saving, subjects
     videoUrls: entry?.videoUrls?.length ? entry.videoUrls : (entry?.videoUrl ? [entry.videoUrl] : []),
   });
   const [topics, setTopics] = useState([]);
+  const [existingTopicIds, setExistingTopicIds] = useState(new Set());
+
   useEffect(() => {
     if (form.subjectId) {
-      api.beyondSchoolTopics.getAll()
-        .then(d => setTopics((Array.isArray(d) ? d : []).filter(t => String(t.subjectId) === String(form.subjectId))))
-        .catch(() => {});
-    } else { setTopics([]); }
+      Promise.all([
+        api.beyondSchoolTopics.getAll().catch(() => []),
+        api.beyondSchoolLearnDetails.getAll().catch(() => []),
+      ]).then(([allTopics, allDetails]) => {
+        const subjectTopics = (Array.isArray(allTopics) ? allTopics : [])
+          .filter(t => String(t.subjectId) === String(form.subjectId));
+        setTopics(subjectTopics);
+
+        // Topics that already have a learn detail — exclude current entry when editing
+        const usedIds = new Set(
+          (Array.isArray(allDetails) ? allDetails : [])
+            .filter(d => !entry || String(d.topicId) !== String(entry.topicId))
+            .map(d => String(d.topicId))
+        );
+        setExistingTopicIds(usedIds);
+      });
+    } else {
+      setTopics([]);
+      setExistingTopicIds(new Set());
+    }
   }, [form.subjectId]);
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -739,22 +865,29 @@ const BeyondSchoolLearnDetailModal = ({ entry, onSave, onClose, saving, subjects
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Topic <span className="text-red-500">*</span></label>
-              <select className={selCls} value={form.topicId} onChange={e => set("topicId", e.target.value)}>
+              <select className={selCls} value={form.topicId} onChange={e => set("topicId", e.target.value)}
+                disabled={!form.subjectId || !form.grade}>
                 <option value="">Select Topic</option>
-                {topics.map(t => <option key={t._id} value={t._id}>{t.topic || t.title}</option>)}
+                {topics
+                  .filter(t => !existingTopicIds.has(String(t._id)))
+                  .filter(t => form.grade && t.grade === form.grade)
+                  .map(t => <option key={t._id} value={t._id}>{t.topic || t.title}</option>)}
               </select>
+              {!form.subjectId && (
+                <p className="mt-1 text-xs text-amber-500 font-medium">⬆ Select a subject first</p>
+              )}
+              {form.subjectId && !form.grade && (
+                <p className="mt-1 text-xs text-amber-500 font-medium">⬆ Select a grade to see available topics</p>
+              )}
+              {form.subjectId && form.grade && topics.filter(t => !existingTopicIds.has(String(t._id)) && t.grade === form.grade).length === 0 && (
+                <p className="mt-1 text-xs text-gray-400 font-medium">No available topics for this subject &amp; grade</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Grade</label>
-              <select className={selCls} value={form.grade} onChange={e => set("grade", e.target.value)}>
+              <select className={selCls} value={form.grade} onChange={e => { set("grade", e.target.value); set("topicId", ""); }}>
                 <option value="">Select Grade</option>
                 {grades.map(g => <option key={g._id} value={g.title}>{g.title}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Level</label>
-              <select className={selCls} value={form.level} onChange={e => set("level", e.target.value)}>
-                {["Basic","Intermediate","Advanced"].map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
           </div>
@@ -877,7 +1010,6 @@ const TabLearnDetails = () => {
               <th className="px-4 py-3.5 text-left w-10">No</th>
               <th className="px-4 py-3.5 text-left">Subject</th>
               <th className="px-4 py-3.5 text-left">Topic</th>
-              <th className="px-4 py-3.5 text-left">Level</th>
               <th className="px-4 py-3.5 text-left">Grade</th>
               <th className="px-4 py-3.5 text-left">Sections</th>
               <th className="px-4 py-3.5 text-center w-28">Actions</th>
@@ -885,15 +1017,14 @@ const TabLearnDetails = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="text-center py-16 text-gray-400">Loading...</td></tr>
+              <tr><td colSpan={6} className="text-center py-16 text-gray-400">Loading...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-16 text-gray-400">No learn details yet.</td></tr>
+              <tr><td colSpan={6} className="text-center py-16 text-gray-400">No learn details yet.</td></tr>
             ) : filtered.map((item, i) => (
               <tr key={item._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                 <td className="px-4 py-3 text-gray-400">{i + 1}</td>
                 <td className="px-4 py-3 font-semibold text-gray-800">{item.subjectName || "—"}</td>
                 <td className="px-4 py-3 text-gray-700">{item.topicTitle || "—"}</td>
-                <td className="px-4 py-3"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${levelColor(item.level)}`}>{item.level || "Basic"}</span></td>
                 <td className="px-4 py-3 text-gray-600">{item.grade || "—"}</td>
                 <td className="px-4 py-3 text-center"><span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded-full">{item.sections?.length || 0}</span></td>
                 <td className="px-4 py-3">
@@ -919,7 +1050,6 @@ const TabLearnDetails = () => {
               <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100">
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Subject</p><p className="text-sm font-semibold">{viewItem.subjectName}</p></div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Topic</p><p className="text-sm font-semibold">{viewItem.topicTitle}</p></div>
-                <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Level</p><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${levelColor(viewItem.level)}`}>{viewItem.level}</span></div>
                 <div><p className="text-xs font-bold text-gray-400 uppercase mb-1">Grade</p><p className="text-sm text-gray-700">{viewItem.grade || "—"}</p></div>
               </div>
               {viewItem.sections?.length > 0 && viewItem.sections.map((sec, i) => (
@@ -987,3 +1117,4 @@ const BeyondSchool = () => {
 };
 
 export default BeyondSchool;
+
