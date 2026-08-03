@@ -2,6 +2,7 @@ import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 export const UPLOADS_URL = import.meta.env.VITE_UPLOADS_URL || "https://nudge2grow.com/uploads";
+// Note: in dev, VITE_API_URL is intentionally empty so Vite proxy handles /api → nudge2grow.com
 
 console.log('[API] BASE_URL:', BASE_URL);
 console.log('[API] UPLOADS_URL:', UPLOADS_URL);

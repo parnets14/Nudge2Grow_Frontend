@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { MdEmail, MdLock, MdVisibility, MdVisibilityOff } from 'react-icons/md';
 import logo from '../../assets/logo.jpeg';
+import { api } from '../../api';
 
 function Login() {
   const [email, setEmail]               = useState('');
@@ -22,26 +23,19 @@ function Login() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password: password.trim() }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || 'Invalid email or password.');
-        setIsLoading(false);
-        return;
-      }
+      const data = await api.login(email.trim(), password.trim());
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('adminToken', data.token);
 
       navigate('/admin/grade', { replace: true });
-    } catch {
-      setError('Server not reachable. Make sure backend is running.');
+    } catch (err) {
+      const message = err?.response?.data?.message || err?.message || 'Invalid email or password.';
+      if (message.toLowerCase().includes('network') || message.toLowerCase().includes('reachable')) {
+        setError('Server not reachable. Make sure backend is running.');
+      } else {
+        setError(message);
+      }
       setIsLoading(false);
     }
   };

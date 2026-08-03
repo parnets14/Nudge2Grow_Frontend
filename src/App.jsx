@@ -52,7 +52,8 @@ const ProtectedRoute = ({ children }) => {
     // Hit a protected endpoint — if the token is expired/invalid the backend
     // returns 401 and the axios interceptor (api.js) clears localStorage.
     // We do a plain fetch here so we don't depend on the axios instance.
-    fetch('/api/admin/profile', {
+    const apiUrl = import.meta.env.VITE_API_URL || '/api';
+    fetch(`${apiUrl}/admin/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
